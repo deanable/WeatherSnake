@@ -51,16 +51,25 @@ class WeatherJuiceApp:
         # Monthly Checkbox
         self.monthly_var = tk.BooleanVar(value=True)
         self.monthly_chk = ttk.Checkbutton(input_frame, text="Monthly Average", variable=self.monthly_var)
-        self.monthly_chk.grid(row=0, column=8, padx=15, pady=5, sticky=tk.W)
+        self.monthly_chk.grid(row=0, column=8, padx=10, pady=5, sticky=tk.W)
+
+        # Unify Scales Checkbox
+        self.unify_var = tk.BooleanVar(value=True)
+        self.unify_chk = ttk.Checkbutton(input_frame, text="Unify Scales", variable=self.unify_var)
+        self.unify_chk.grid(row=0, column=9, padx=10, pady=5, sticky=tk.W)
 
         # Fetch Button
         self.fetch_btn = ttk.Button(input_frame, text="Fetch Data", command=self.fetch_data_thread)
-        self.fetch_btn.grid(row=0, column=9, padx=10, pady=5, sticky=tk.W)
+        self.fetch_btn.grid(row=0, column=10, padx=10, pady=5, sticky=tk.W)
+        
+        # Save Button
+        self.save_btn = ttk.Button(input_frame, text="Save to JPG", command=self.save_to_jpg, state="disabled")
+        self.save_btn.grid(row=0, column=11, padx=10, pady=5, sticky=tk.W)
         
         # Loading Label
         self.status_var = tk.StringVar(value="Ready.")
         self.status_label = ttk.Label(input_frame, textvariable=self.status_var, foreground="gray")
-        self.status_label.grid(row=1, column=0, columnspan=10, sticky=tk.W, padx=5, pady=2)
+        self.status_label.grid(row=1, column=0, columnspan=12, sticky=tk.W, padx=5, pady=2)
 
         # Bottom Frame for Content
         content_frame = ttk.Frame(self.root)
@@ -87,9 +96,11 @@ class WeatherJuiceApp:
         self.canvas_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         self.canvas_widget = None
+        self.current_fig = None
 
     def fetch_data_thread(self):
         self.fetch_btn.config(state="disabled")
+        self.save_btn.config(state="disabled")
         self.status_var.set("Fetching coordinates...")
         self.tree.delete(*self.tree.get_children())
         if self.canvas_widget:
@@ -106,6 +117,7 @@ class WeatherJuiceApp:
         depth = self.depth_var.get()
         units = self.units_var.get()
         monthly = self.monthly_var.get()
+        unify_scales = self.unify_var.get()
         
         try:
             lat, lon = get_coordinates(city)
@@ -126,7 +138,7 @@ class WeatherJuiceApp:
             if processed_df.empty:
                 raise ValueError("No data available for the given timeframe.")
                 
-            fig = create_visualization_figure(processed_df, city, period, units, monthly)
+            fig = create_visualization_figure(processed_df, city, period, units, monthly, unify_scales)
             
             self.root.after(0, self.update_ui, processed_df, fig, units)
             
@@ -134,6 +146,7 @@ class WeatherJuiceApp:
             self.root.after(0, self.show_error, str(e))
 
     def update_ui(self, df, fig, units):
+        self.current_fig = fig
         # Update Treeview
         temp_unit = "°F" if units == "imperial" else "°C"
         precip_unit = "inch" if units == "imperial" else "mm"
@@ -147,17 +160,34 @@ class WeatherJuiceApp:
             ))
             
         # Add Matplotlib Figure to Canvas
-        self.canvas_widget = FigureCanvasTkAgg(fig, master=self.canvas_frame)
+        self.canvas_widget = FigureCanvasTkAgg(self.current_fig, master=self.canvas_frame)
         self.canvas_widget.draw()
         self.canvas_widget.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         self.status_var.set("Ready.")
         self.fetch_btn.config(state="normal")
+        self.save_btn.config(state="normal")
+        
+    def save_to_jpg(self):
+        if self.current_fig:
+            from tkinter import filedialog
+            filepath = filedialog.asksaveasfilename(
+                defaultextension=".jpg",
+                filetypes=[("JPEG files", "*.jpg"), ("All files", "*.*")],
+                title="Save Chart as JPG"
+            )
+            if filepath:
+                try:
+                    self.current_fig.savefig(filepath, format="jpg", dpi=300)
+                    messagebox.showinfo("Success", f"Chart saved successfully to:\n{filepath}")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to save image:\n{e}")
         
     def show_error(self, message):
         messagebox.showerror("Error", message)
         self.status_var.set("Error occurred.")
         self.fetch_btn.config(state="normal")
+        self.save_btn.config(state="disabled")
 
 if __name__ == "__main__":
     root = tk.Tk()

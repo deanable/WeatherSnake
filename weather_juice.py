@@ -11,6 +11,7 @@ def main():
     parser.add_argument("--depth", type=int, choices=[1, 5, 10, 20], required=True, help="Analysis depth in years (1, 5, 10, or 20).")
     parser.add_argument("--units", type=str, choices=["metric", "imperial"], default="metric", help="Unit system: metric or imperial.")
     parser.add_argument("--monthly", action="store_true", help="Toggle monthly-only averages.")
+    parser.add_argument("--unify-scales", action="store_true", help="Unify the temperature and precipitation Y-axis scales.")
     
     args = parser.parse_args()
     
@@ -51,7 +52,7 @@ def main():
     
     print_summary(processed_df, args.city, args.period, args.units)
     export_to_csv(processed_df, args.city, args.period)
-    generate_visualizations(processed_df, args.city, args.period, args.units, args.monthly)
+    generate_visualizations(processed_df, args.city, args.period, args.units, args.monthly, args.unify_scales)
 
 if __name__ == "__main__":
     main()
