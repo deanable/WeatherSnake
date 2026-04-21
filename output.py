@@ -1,5 +1,11 @@
+import re
 import pandas as pd
 import matplotlib.pyplot as plt
+
+
+def _safe_filename(name: str) -> str:
+    """Sanitize a string for use in a filename."""
+    return re.sub(r'[^\w\-]', '_', name)
 
 def print_summary(df: pd.DataFrame, city: str, period: str, units: str):
     """Prints a summary table of the processed weather data to the console."""
@@ -16,14 +22,14 @@ def print_summary(df: pd.DataFrame, city: str, period: str, units: str):
 
 def export_to_csv(df: pd.DataFrame, city: str, period: str):
     """Exports the processed data to a CSV file."""
-    filename = f"weather_report_{city.replace(' ', '_')}_{period.replace(' ', '_')}.csv"
+    filename = f"weather_report_{_safe_filename(city)}_{_safe_filename(period)}.csv"
     df.to_csv(filename, index=False)
     print(f"Exported data to {filename}")
 
 def generate_visualizations(df: pd.DataFrame, city: str, period: str, units: str, monthly: bool, unify_scales: bool = True):
     """Generates and saves temperature and rainfall graphs as a PNG file."""
     fig = create_visualization_figure(df, city, period, units, monthly, unify_scales)
-    filename = f"weather_plot_{city.replace(' ', '_')}_{period.replace(' ', '_')}.png"
+    filename = f"weather_plot_{_safe_filename(city)}_{_safe_filename(period)}.png"
     fig.savefig(filename)
     plt.close(fig)
     print(f"Saved visualization to {filename}")

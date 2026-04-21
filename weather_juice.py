@@ -28,6 +28,7 @@ def main():
     end_year = current_year - 1
     start_year = end_year - args.depth + 1
     
+    # Fetch one extra year before the range to cover cross-year seasons (e.g. Dec-Feb summer)
     start_date = f"{start_year - 1}-01-01"
     end_date = f"{end_year}-12-31"
     

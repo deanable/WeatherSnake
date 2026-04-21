@@ -5,6 +5,7 @@ from datetime import datetime
 
 import matplotlib
 matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from api_client import get_coordinates, fetch_historical_weather
@@ -39,7 +40,7 @@ class WeatherJuiceApp:
         # Depth
         ttk.Label(input_frame, text="Depth (Years):").grid(row=0, column=4, padx=5, pady=5, sticky=tk.W)
         self.depth_var = tk.IntVar(value=10)
-        self.depth_cb = ttk.Combobox(input_frame, textvariable=self.depth_var, values=[1, 5, 10, 20], state="readonly", width=5)
+        self.depth_cb = ttk.Combobox(input_frame, textvariable=self.depth_var, values=["1", "5", "10", "20"], state="readonly", width=5)
         self.depth_cb.grid(row=0, column=5, padx=5, pady=5, sticky=tk.W)
 
         # Units
@@ -55,7 +56,7 @@ class WeatherJuiceApp:
 
         # Unify Scales Checkbox
         self.unify_var = tk.BooleanVar(value=True)
-        self.unify_chk = ttk.Checkbutton(input_frame, text="Unify Scales", variable=self.unify_var)
+        self.unify_chk = ttk.Checkbutton(input_frame, text="Shared Y-Axis", variable=self.unify_var)
         self.unify_chk.grid(row=0, column=9, padx=10, pady=5, sticky=tk.W)
 
         # Fetch Button
@@ -99,6 +100,11 @@ class WeatherJuiceApp:
         self.current_fig = None
 
     def fetch_data_thread(self):
+        city = self.city_var.get().strip()
+        if not city:
+            messagebox.showerror("Error", "Please enter a city name.")
+            return
+
         self.fetch_btn.config(state="disabled")
         self.save_btn.config(state="disabled")
         self.status_var.set("Fetching coordinates...")
@@ -106,18 +112,31 @@ class WeatherJuiceApp:
         if self.canvas_widget:
             self.canvas_widget.get_tk_widget().destroy()
             self.canvas_widget = None
-            
-        thread = threading.Thread(target=self.process_data)
+        if self.current_fig:
+            plt.close(self.current_fig)
+            self.current_fig = None
+
+        # Capture all widget values on the main thread for thread safety
+        params = {
+            "city": city,
+            "period": self.period_var.get(),
+            "depth": self.depth_var.get(),
+            "units": self.units_var.get(),
+            "monthly": self.monthly_var.get(),
+            "unify_scales": self.unify_var.get(),
+        }
+
+        thread = threading.Thread(target=self.process_data, args=(params,))
         thread.daemon = True
         thread.start()
 
-    def process_data(self):
-        city = self.city_var.get()
-        period = self.period_var.get()
-        depth = self.depth_var.get()
-        units = self.units_var.get()
-        monthly = self.monthly_var.get()
-        unify_scales = self.unify_var.get()
+    def process_data(self, params):
+        city = params["city"]
+        period = params["period"]
+        depth = params["depth"]
+        units = params["units"]
+        monthly = params["monthly"]
+        unify_scales = params["unify_scales"]
         
         try:
             lat, lon = get_coordinates(city)
@@ -127,6 +146,7 @@ class WeatherJuiceApp:
             current_year = datetime.now().year
             end_year = current_year - 1
             start_year = end_year - depth + 1
+            # Fetch one extra year to cover cross-year seasons (e.g. Dec-Feb summer)
             start_date = f"{start_year - 1}-01-01"
             end_date = f"{end_year}-12-31"
             
