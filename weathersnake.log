@@ -1250,3 +1250,350 @@
 2026-04-21 13:38:19,404 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
 2026-04-21 13:38:19,407 [DEBUG] processing: After season filter (Full Year): 4015 rows
 2026-04-21 13:38:19,408 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 12:31:19,352 [INFO] __main__: Weather Juice UI starting
+2026-06-04 12:31:55,533 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Spring', 'depth': 5, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 5.0}
+2026-06-04 12:31:55,533 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 12:31:56,367 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:31:56,367 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 12:31:56,372 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2020-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:31:57,809 [DEBUG] api_client: Weather response: 2192 daily records
+2026-06-04 12:31:57,811 [DEBUG] processing: Processing weather data: period=Spring, units=metric, monthly=True, custom=False
+2026-06-04 12:31:57,824 [DEBUG] processing: Raw dataframe: 2192 rows
+2026-06-04 12:31:57,832 [DEBUG] processing: Zeroed 1963 precipitation values below 5.0 mm threshold
+2026-06-04 12:31:57,837 [DEBUG] processing: Excluded 2 leap day rows, 2190 rows remaining
+2026-06-04 12:31:57,848 [DEBUG] processing: After season filter (Spring): 546 rows
+2026-06-04 12:31:57,856 [DEBUG] processing: Processing complete: 3 output rows
+2026-06-04 12:32:03,493 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Spring', 'depth': 5, 'units': 'metric', 'monthly': False, 'unify_scales': True, 'precip_threshold': 5.0}
+2026-06-04 12:32:03,494 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 12:32:04,260 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:32:04,261 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 12:32:04,262 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2020-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:32:05,105 [DEBUG] api_client: Weather response: 2192 daily records
+2026-06-04 12:32:05,106 [DEBUG] processing: Processing weather data: period=Spring, units=metric, monthly=False, custom=False
+2026-06-04 12:32:05,108 [DEBUG] processing: Raw dataframe: 2192 rows
+2026-06-04 12:32:05,108 [DEBUG] processing: Zeroed 1963 precipitation values below 5.0 mm threshold
+2026-06-04 12:32:05,109 [DEBUG] processing: Excluded 2 leap day rows, 2190 rows remaining
+2026-06-04 12:32:05,112 [DEBUG] processing: After season filter (Spring): 546 rows
+2026-06-04 12:32:05,122 [DEBUG] processing: Processing complete: 91 output rows
+2026-06-04 12:39:36,663 [INFO] __main__: Weather Juice UI starting
+2026-06-04 12:40:29,172 [INFO] __main__: Fetch started: {'city': 'Johannesburg', 'period': 'Full Year', 'depth': 5, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 5.0}
+2026-06-04 12:40:29,172 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Johannesburg', 'count': 1, 'format': 'json'}
+2026-06-04 12:40:29,991 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:40:29,991 [DEBUG] api_client: Resolved 'Johannesburg' to lat=-26.2023, lon=28.0436
+2026-06-04 12:40:29,992 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -26.20227, 'longitude': 28.04363, 'start_date': '2020-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:40:33,614 [DEBUG] api_client: Weather response: 2192 daily records
+2026-06-04 12:40:33,615 [DEBUG] processing: Processing weather data: period=Full Year, units=metric, monthly=True, custom=False
+2026-06-04 12:40:33,620 [DEBUG] processing: Raw dataframe: 2192 rows
+2026-06-04 12:40:33,622 [DEBUG] processing: Zeroed 1933 precipitation values below 5.0 mm threshold
+2026-06-04 12:40:33,624 [DEBUG] processing: Excluded 2 leap day rows, 2190 rows remaining
+2026-06-04 12:40:33,627 [DEBUG] processing: After season filter (Full Year): 2190 rows
+2026-06-04 12:40:33,634 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 12:40:59,244 [INFO] __main__: Fetch started: {'city': 'Johannesburg', 'period': 'Full Year', 'depth': 5, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0}
+2026-06-04 12:40:59,244 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Johannesburg', 'count': 1, 'format': 'json'}
+2026-06-04 12:41:00,049 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:41:00,049 [DEBUG] api_client: Resolved 'Johannesburg' to lat=-26.2023, lon=28.0436
+2026-06-04 12:41:00,050 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -26.20227, 'longitude': 28.04363, 'start_date': '2020-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:41:02,769 [DEBUG] api_client: Weather response: 2192 daily records
+2026-06-04 12:41:02,771 [DEBUG] processing: Processing weather data: period=Full Year, units=metric, monthly=True, custom=False
+2026-06-04 12:41:02,772 [DEBUG] processing: Raw dataframe: 2192 rows
+2026-06-04 12:41:02,773 [DEBUG] processing: Excluded 2 leap day rows, 2190 rows remaining
+2026-06-04 12:41:02,775 [DEBUG] processing: After season filter (Full Year): 2190 rows
+2026-06-04 12:41:02,777 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 12:41:37,156 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Full Year', 'depth': 5, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0}
+2026-06-04 12:41:37,156 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 12:41:37,910 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:41:37,910 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 12:41:37,911 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2020-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:41:38,772 [DEBUG] api_client: Weather response: 2192 daily records
+2026-06-04 12:41:38,773 [DEBUG] processing: Processing weather data: period=Full Year, units=metric, monthly=True, custom=False
+2026-06-04 12:41:38,775 [DEBUG] processing: Raw dataframe: 2192 rows
+2026-06-04 12:41:38,776 [DEBUG] processing: Excluded 2 leap day rows, 2190 rows remaining
+2026-06-04 12:41:38,778 [DEBUG] processing: After season filter (Full Year): 2190 rows
+2026-06-04 12:41:38,779 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 12:42:38,861 [INFO] __main__: Weather Juice UI starting
+2026-06-04 12:43:22,019 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 2.5, 'selected_month': 8}
+2026-06-04 12:43:22,019 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 12:43:22,777 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:43:22,777 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 12:43:22,778 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:43:24,025 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 12:43:24,026 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 12:43:24,030 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 12:43:24,030 [DEBUG] processing: Zeroed 3459 precipitation values below 2.5 mm threshold
+2026-06-04 12:43:24,031 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 12:43:24,035 [DEBUG] processing: After custom range filter (8/1 - 8/31): 341 rows
+2026-06-04 12:43:24,039 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 12:43:50,020 [INFO] __main__: Fetch started: {'city': 'Johannesburg', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 2.5, 'selected_month': 8}
+2026-06-04 12:43:50,020 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Johannesburg', 'count': 1, 'format': 'json'}
+2026-06-04 12:43:50,782 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:43:50,783 [DEBUG] api_client: Resolved 'Johannesburg' to lat=-26.2023, lon=28.0436
+2026-06-04 12:43:50,784 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -26.20227, 'longitude': 28.04363, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:43:54,666 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 12:43:54,667 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 12:43:54,670 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 12:43:54,670 [DEBUG] processing: Zeroed 3364 precipitation values below 2.5 mm threshold
+2026-06-04 12:43:54,671 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 12:43:54,675 [DEBUG] processing: After custom range filter (8/1 - 8/31): 341 rows
+2026-06-04 12:43:54,679 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 12:46:25,475 [INFO] __main__: Weather Juice UI starting
+2026-06-04 12:46:40,499 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Summer', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 2.5}
+2026-06-04 12:46:40,500 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 12:46:41,289 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:46:41,289 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 12:46:41,290 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:46:43,810 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 12:46:43,811 [DEBUG] processing: Processing weather data: period=Summer, units=metric, monthly=True, custom=False
+2026-06-04 12:46:43,814 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 12:46:43,814 [DEBUG] processing: Zeroed 3459 precipitation values below 2.5 mm threshold
+2026-06-04 12:46:43,815 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 12:46:43,819 [DEBUG] processing: After season filter (Summer): 990 rows
+2026-06-04 12:46:43,822 [DEBUG] processing: Processing complete: 3 output rows
+2026-06-04 12:46:49,268 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Summer', 'depth': 10, 'units': 'metric', 'monthly': False, 'unify_scales': True, 'precip_threshold': 2.5}
+2026-06-04 12:46:49,268 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 12:46:50,033 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:46:50,033 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 12:46:50,034 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:46:54,371 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 12:46:54,372 [DEBUG] processing: Processing weather data: period=Summer, units=metric, monthly=False, custom=False
+2026-06-04 12:46:54,374 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 12:46:54,375 [DEBUG] processing: Zeroed 3459 precipitation values below 2.5 mm threshold
+2026-06-04 12:46:54,376 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 12:46:54,379 [DEBUG] processing: After season filter (Summer): 990 rows
+2026-06-04 12:46:54,384 [DEBUG] processing: Processing complete: 90 output rows
+2026-06-04 12:47:10,708 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Summer', 'depth': 10, 'units': 'metric', 'monthly': False, 'unify_scales': True, 'precip_threshold': 0.0}
+2026-06-04 12:47:10,708 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 12:47:11,489 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 12:47:11,489 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 12:47:11,491 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 12:47:12,363 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 12:47:12,365 [DEBUG] processing: Processing weather data: period=Summer, units=metric, monthly=False, custom=False
+2026-06-04 12:47:12,367 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 12:47:12,368 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 12:47:12,370 [DEBUG] processing: After season filter (Summer): 990 rows
+2026-06-04 12:47:12,374 [DEBUG] processing: Processing complete: 90 output rows
+2026-06-04 13:08:57,662 [INFO] __main__: Weather Juice UI starting
+2026-06-04 13:09:34,143 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Full Year', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 2.5}
+2026-06-04 13:09:34,144 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:09:34,966 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:09:34,966 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:09:34,967 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:09:38,890 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:09:38,891 [DEBUG] processing: Processing weather data: period=Full Year, units=metric, monthly=True, custom=False
+2026-06-04 13:09:38,907 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:09:38,916 [DEBUG] processing: Zeroed 3459 precipitation values below 2.5 mm threshold
+2026-06-04 13:09:38,921 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:09:38,928 [DEBUG] processing: After season filter (Full Year): 4015 rows
+2026-06-04 13:09:38,940 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 13:09:51,312 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Full Year', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0}
+2026-06-04 13:09:51,312 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:09:52,093 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:09:52,105 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:09:52,106 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:09:55,036 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:09:55,037 [DEBUG] processing: Processing weather data: period=Full Year, units=metric, monthly=True, custom=False
+2026-06-04 13:09:55,039 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:09:55,041 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:09:55,043 [DEBUG] processing: After season filter (Full Year): 4015 rows
+2026-06-04 13:09:55,045 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 13:10:39,160 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Full Year', 'depth': 10, 'units': 'imperial', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0}
+2026-06-04 13:10:39,160 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:10:39,943 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:10:39,943 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:10:39,944 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:10:44,324 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:10:44,325 [DEBUG] processing: Processing weather data: period=Full Year, units=imperial, monthly=True, custom=False
+2026-06-04 13:10:44,328 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:10:44,329 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:10:44,331 [DEBUG] processing: After season filter (Full Year): 4015 rows
+2026-06-04 13:10:44,334 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 13:11:27,632 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0, 'selected_month': 7}
+2026-06-04 13:11:27,632 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:11:28,401 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:11:28,401 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:11:28,402 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:11:29,373 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:11:29,374 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 13:11:29,376 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:11:29,377 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:11:29,396 [DEBUG] processing: After custom range filter (7/1 - 7/31): 341 rows
+2026-06-04 13:11:29,404 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:11:47,591 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Month', 'depth': 10, 'units': 'imperial', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0, 'selected_month': 7}
+2026-06-04 13:11:47,592 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:11:48,377 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:11:48,377 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:11:48,378 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:11:50,421 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:11:50,422 [DEBUG] processing: Processing weather data: period=Month, units=imperial, monthly=True, custom=True
+2026-06-04 13:11:50,424 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:11:50,425 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:11:50,428 [DEBUG] processing: After custom range filter (7/1 - 7/31): 341 rows
+2026-06-04 13:11:50,431 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:11:56,144 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Month', 'depth': 10, 'units': 'imperial', 'monthly': True, 'unify_scales': False, 'precip_threshold': 0.0, 'selected_month': 7}
+2026-06-04 13:11:56,144 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:11:56,899 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:11:56,899 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:11:56,900 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:12:01,373 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:12:01,374 [DEBUG] processing: Processing weather data: period=Month, units=imperial, monthly=True, custom=True
+2026-06-04 13:12:01,376 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:12:01,377 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:12:01,380 [DEBUG] processing: After custom range filter (7/1 - 7/31): 341 rows
+2026-06-04 13:12:01,383 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:21:28,527 [INFO] __main__: Fetch started: {'city': 'bloemfontein', 'period': 'Month', 'depth': 10, 'units': 'imperial', 'monthly': True, 'unify_scales': False, 'precip_threshold': 0.0, 'selected_month': 7}
+2026-06-04 13:21:28,527 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'bloemfontein', 'count': 1, 'format': 'json'}
+2026-06-04 13:21:29,334 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:21:29,334 [DEBUG] api_client: Resolved 'bloemfontein' to lat=-29.1211, lon=26.2140
+2026-06-04 13:21:29,335 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -29.12107, 'longitude': 26.214, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:21:31,697 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:21:31,698 [DEBUG] processing: Processing weather data: period=Month, units=imperial, monthly=True, custom=True
+2026-06-04 13:21:31,701 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:21:31,702 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:21:31,705 [DEBUG] processing: After custom range filter (7/1 - 7/31): 341 rows
+2026-06-04 13:21:31,708 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:21:47,958 [INFO] __main__: Fetch started: {'city': 'bloemfontein', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0, 'selected_month': 7}
+2026-06-04 13:21:47,958 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'bloemfontein', 'count': 1, 'format': 'json'}
+2026-06-04 13:21:48,711 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:21:48,711 [DEBUG] api_client: Resolved 'bloemfontein' to lat=-29.1211, lon=26.2140
+2026-06-04 13:21:48,712 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -29.12107, 'longitude': 26.214, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:21:51,337 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:21:51,338 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 13:21:51,341 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:21:51,342 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:21:51,345 [DEBUG] processing: After custom range filter (7/1 - 7/31): 341 rows
+2026-06-04 13:21:51,347 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:23:44,239 [INFO] __main__: Weather Juice UI starting
+2026-06-04 13:24:07,903 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Spring', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 2.5}
+2026-06-04 13:24:07,904 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:24:08,674 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:24:08,675 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:24:08,676 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:24:14,415 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:24:14,416 [DEBUG] processing: Processing weather data: period=Spring, units=metric, monthly=True, custom=False
+2026-06-04 13:24:14,419 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:24:14,420 [DEBUG] processing: Zeroed 3459 precipitation values below 2.5 mm threshold
+2026-06-04 13:24:14,421 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:24:14,425 [DEBUG] processing: After season filter (Spring): 1001 rows
+2026-06-04 13:24:14,427 [DEBUG] processing: Processing complete: 3 output rows
+2026-06-04 13:24:19,559 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Spring', 'depth': 10, 'units': 'metric', 'monthly': False, 'unify_scales': True, 'precip_threshold': 2.5}
+2026-06-04 13:24:19,560 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:24:20,325 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:24:20,325 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:24:20,327 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:24:25,996 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:24:25,998 [DEBUG] processing: Processing weather data: period=Spring, units=metric, monthly=False, custom=False
+2026-06-04 13:24:26,000 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:24:26,000 [DEBUG] processing: Zeroed 3459 precipitation values below 2.5 mm threshold
+2026-06-04 13:24:26,001 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:24:26,004 [DEBUG] processing: After season filter (Spring): 1001 rows
+2026-06-04 13:24:26,010 [DEBUG] processing: Processing complete: 91 output rows
+2026-06-04 13:24:44,303 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Full Year', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 2.5}
+2026-06-04 13:24:44,303 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:24:45,077 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:24:45,077 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:24:45,078 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:24:45,976 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:24:45,977 [DEBUG] processing: Processing weather data: period=Full Year, units=metric, monthly=True, custom=False
+2026-06-04 13:24:45,980 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:24:45,981 [DEBUG] processing: Zeroed 3459 precipitation values below 2.5 mm threshold
+2026-06-04 13:24:45,982 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:24:45,985 [DEBUG] processing: After season filter (Full Year): 4015 rows
+2026-06-04 13:24:45,987 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 13:24:53,775 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Full Year', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0}
+2026-06-04 13:24:53,775 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:24:54,541 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:24:54,541 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:24:54,542 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:24:57,997 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:24:57,998 [DEBUG] processing: Processing weather data: period=Full Year, units=metric, monthly=True, custom=False
+2026-06-04 13:24:58,001 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:24:58,002 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:24:58,005 [DEBUG] processing: After season filter (Full Year): 4015 rows
+2026-06-04 13:24:58,008 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 13:25:04,014 [INFO] __main__: Fetch started: {'city': 'Johannesburg', 'period': 'Full Year', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0}
+2026-06-04 13:25:04,015 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Johannesburg', 'count': 1, 'format': 'json'}
+2026-06-04 13:25:04,777 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:25:04,777 [DEBUG] api_client: Resolved 'Johannesburg' to lat=-26.2023, lon=28.0436
+2026-06-04 13:25:04,778 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -26.20227, 'longitude': 28.04363, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:25:06,173 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:25:06,174 [DEBUG] processing: Processing weather data: period=Full Year, units=metric, monthly=True, custom=False
+2026-06-04 13:25:06,177 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:25:06,179 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:25:06,182 [DEBUG] processing: After season filter (Full Year): 4015 rows
+2026-06-04 13:25:06,184 [DEBUG] processing: Processing complete: 12 output rows
+2026-06-04 13:25:23,550 [INFO] __main__: Fetch started: {'city': 'Johannesburg', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0, 'selected_month': 8}
+2026-06-04 13:25:23,551 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Johannesburg', 'count': 1, 'format': 'json'}
+2026-06-04 13:25:24,298 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:25:24,298 [DEBUG] api_client: Resolved 'Johannesburg' to lat=-26.2023, lon=28.0436
+2026-06-04 13:25:24,299 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -26.20227, 'longitude': 28.04363, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:25:25,167 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:25:25,168 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 13:25:25,170 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:25:25,172 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:25:25,175 [DEBUG] processing: After custom range filter (8/1 - 8/31): 341 rows
+2026-06-04 13:25:25,178 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:25:35,208 [INFO] __main__: Fetch started: {'city': 'Johannesburg', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0, 'selected_month': 9}
+2026-06-04 13:25:35,208 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Johannesburg', 'count': 1, 'format': 'json'}
+2026-06-04 13:25:35,975 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:25:35,975 [DEBUG] api_client: Resolved 'Johannesburg' to lat=-26.2023, lon=28.0436
+2026-06-04 13:25:35,977 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -26.20227, 'longitude': 28.04363, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:25:37,819 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:25:37,820 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 13:25:37,823 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:25:37,824 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:25:37,827 [DEBUG] processing: After custom range filter (9/1 - 9/30): 330 rows
+2026-06-04 13:25:37,829 [DEBUG] processing: Processing complete: 30 output rows
+2026-06-04 13:25:45,584 [INFO] __main__: Fetch started: {'city': 'Johannesburg', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0, 'selected_month': 10}
+2026-06-04 13:25:45,585 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Johannesburg', 'count': 1, 'format': 'json'}
+2026-06-04 13:25:46,361 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:25:46,361 [DEBUG] api_client: Resolved 'Johannesburg' to lat=-26.2023, lon=28.0436
+2026-06-04 13:25:46,362 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -26.20227, 'longitude': 28.04363, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:25:50,174 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:25:50,175 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 13:25:50,177 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:25:50,178 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:25:50,181 [DEBUG] processing: After custom range filter (10/1 - 10/31): 341 rows
+2026-06-04 13:25:50,183 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:25:58,046 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0, 'selected_month': 10}
+2026-06-04 13:25:58,046 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:25:58,813 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:25:58,814 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:25:58,815 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:26:05,273 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:26:05,274 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 13:26:05,277 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:26:05,278 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:26:05,281 [DEBUG] processing: After custom range filter (10/1 - 10/31): 341 rows
+2026-06-04 13:26:05,283 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:26:10,935 [INFO] __main__: Fetch started: {'city': 'Cape Town', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': False, 'precip_threshold': 0.0, 'selected_month': 10}
+2026-06-04 13:26:10,935 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Cape Town', 'count': 1, 'format': 'json'}
+2026-06-04 13:26:11,700 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:26:11,700 [DEBUG] api_client: Resolved 'Cape Town' to lat=-33.9258, lon=18.4232
+2026-06-04 13:26:11,702 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -33.92584, 'longitude': 18.42322, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:26:16,649 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:26:16,651 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 13:26:16,653 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:26:16,654 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:26:16,658 [DEBUG] processing: After custom range filter (10/1 - 10/31): 341 rows
+2026-06-04 13:26:16,661 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:26:27,966 [INFO] __main__: Fetch started: {'city': 'Durban', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': False, 'precip_threshold': 0.0, 'selected_month': 10}
+2026-06-04 13:26:27,967 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Durban', 'count': 1, 'format': 'json'}
+2026-06-04 13:26:28,725 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:26:28,725 [DEBUG] api_client: Resolved 'Durban' to lat=-29.8579, lon=31.0292
+2026-06-04 13:26:28,726 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -29.8579, 'longitude': 31.0292, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:26:32,416 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:26:32,417 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 13:26:32,419 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:26:32,420 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:26:32,423 [DEBUG] processing: After custom range filter (10/1 - 10/31): 341 rows
+2026-06-04 13:26:32,426 [DEBUG] processing: Processing complete: 31 output rows
+2026-06-04 13:26:37,833 [INFO] __main__: Fetch started: {'city': 'Durban', 'period': 'Month', 'depth': 10, 'units': 'metric', 'monthly': True, 'unify_scales': True, 'precip_threshold': 0.0, 'selected_month': 10}
+2026-06-04 13:26:37,834 [DEBUG] api_client: Geocoding request: https://geocoding-api.open-meteo.com/v1/search params={'name': 'Durban', 'count': 1, 'format': 'json'}
+2026-06-04 13:26:38,614 [DEBUG] api_client: Geocoding response: 1 result(s)
+2026-06-04 13:26:38,614 [DEBUG] api_client: Resolved 'Durban' to lat=-29.8579, lon=31.0292
+2026-06-04 13:26:38,615 [DEBUG] api_client: Weather request: https://archive-api.open-meteo.com/v1/archive params={'latitude': -29.8579, 'longitude': 31.0292, 'start_date': '2015-01-01', 'end_date': '2025-12-31', 'daily': 'temperature_2m_max,temperature_2m_min,precipitation_sum', 'timezone': 'auto'}
+2026-06-04 13:26:40,894 [DEBUG] api_client: Weather response: 4018 daily records
+2026-06-04 13:26:40,895 [DEBUG] processing: Processing weather data: period=Month, units=metric, monthly=True, custom=True
+2026-06-04 13:26:40,898 [DEBUG] processing: Raw dataframe: 4018 rows
+2026-06-04 13:26:40,899 [DEBUG] processing: Excluded 3 leap day rows, 4015 rows remaining
+2026-06-04 13:26:40,902 [DEBUG] processing: After custom range filter (10/1 - 10/31): 341 rows
+2026-06-04 13:26:40,904 [DEBUG] processing: Processing complete: 31 output rows

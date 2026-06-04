@@ -1,0 +1,28 @@
+name: Build Python EXE
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    - name: Install PyInstaller and Dependencies
+      run: |
+        pip install pyinstaller
+        # pip install -r requirements.txt # Uncomment if you have requirements
+    - name: Build with PyInstaller
+      run: pyinstaller --onefile --clean main.py # Replace main.py
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: win-exe
+        path: dist/main.exe
