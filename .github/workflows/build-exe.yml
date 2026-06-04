@@ -1,4 +1,4 @@
-name: Build Python EXE
+name: Build EXE
 
 on:
   push:
@@ -6,23 +6,54 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build-gui:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
-        cache: 'pip'
-    - name: Install PyInstaller and Dependencies
+        python-version: "3.11"
+        cache: pip
+
+    - name: Install dependencies
       run: |
         pip install pyinstaller
-        # pip install -r requirements.txt # Uncomment if you have requirements
-    - name: Build with PyInstaller
-      run: pyinstaller --onefile --clean main.py # Replace main.py
-    - name: Upload Artifact
+        pip install -r requirements.txt
+
+    - name: Build GUI exe
+      run: |
+        pyinstaller --onefile --clean --noconsole --name WeatherSnake --add-data "assets;assets" ui_app.pyw
+
+    - name: Upload GUI artifact
       uses: actions/upload-artifact@v4
       with:
-        name: win-exe
-        path: dist/main.exe
+        name: WeatherSnake-GUI
+        path: dist/WeatherSnake.exe
+
+  build-cli:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: pip
+
+    - name: Install dependencies
+      run: |
+        pip install pyinstaller
+        pip install -r requirements.txt
+
+    - name: Build CLI exe
+      run: |
+        pyinstaller --onefile --clean --name WeatherSnake-CLI --add-data "assets;assets" weather_juice.py
+
+    - name: Upload CLI artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: WeatherSnake-CLI
+        path: dist/WeatherSnake-CLI.exe

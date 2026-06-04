@@ -1,12 +1,19 @@
 import os
 import re
+import sys
 import pandas as pd
 import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.image import imread
 
 
-LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "logo.png")
+def _asset_path():
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, "assets")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+
+LOGO_PATH = os.path.join(_asset_path(), "logo.png")
 
 
 def _safe_filename(name: str) -> str:
