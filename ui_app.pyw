@@ -1,7 +1,7 @@
 import logging
 import re
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
 import threading
 import json
 import os
@@ -14,7 +14,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from logger_setup import setup_logging
 from api_client import get_coordinates, fetch_historical_weather
 from processing import process_weather_data, custom_range_days
-from output import create_visualization_figure
+from output import create_visualization_figure, print_summary, export_to_csv, generate_visualizations
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +138,22 @@ class WeatherJuiceApp:
         self.save_btn = ttk.Button(input_frame, text="Save to JPG", command=self.save_to_jpg, state="disabled")
         self.save_btn.grid(row=0, column=11, padx=10, pady=5, sticky=tk.W)
         self.create_tooltip(self.save_btn, "Save the current chart as a JPEG image.")
+
+        # Export CSV Button
+        self.export_csv_btn = ttk.Button(input_frame, text="Export CSV", command=self.export_csv)
+        self.export_csv_btn.grid(row=0, column=12, padx=10, pady=5, sticky=tk.W)
+        self.create_tooltip(self.export_csv_btn, "Export the processed data to a CSV file.")
+
+        # Export CSV & Infographic Button
+        self.export_infographic_btn = ttk.Button(input_frame, text="CSV + Infographic", command=self.export_csv_and_infographic)
+        self.export_infographic_btn.grid(row=0, column=13, padx=10, pady=5, sticky=tk.W)
+        self.create_tooltip(self.export_infographic_btn,
+                            "Export CSV and send data to Infogr.am to create an infographic (requires API key).")
+
+        # Set Infogr.am API Key Button
+        self.set_api_key_btn = ttk.Button(input_frame, text="Infogr.am Key", command=self.set_infograma_key)
+        self.set_api_key_btn.grid(row=0, column=14, padx=10, pady=5, sticky=tk.W)
+        self.create_tooltip(self.set_api_key_btn, "Set your Infogr.am API key (stored locally).")
 
         # Custom Range day/month selectors (row 1, initially hidden)
         month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -294,6 +310,8 @@ class WeatherJuiceApp:
         # Month selector
         if s.get("selected_month") is not None:
             self._month_select_var.set(list(self._month_to_num.keys())[s["selected_month"]-1])
+        # Infogr.am API key
+        self._infograma_key = s.get("infograma_key", "")
 
     def save_settings(self):
         """Save current widget values to JSON file."""
@@ -323,6 +341,8 @@ class WeatherJuiceApp:
         s["end_day"] = int(self._cr_end_day.get()) if self._cr_end_day.get() else None
         # Month selector
         s["selected_month"] = self._month_to_num.get(self._month_select_var.get())
+        # Infogr.am API key
+        s["infograma_key"] = getattr(self, "_infograma_key", "")
         try:
             with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
                 json.dump(s, f, indent=2)
@@ -386,6 +406,8 @@ class WeatherJuiceApp:
 
         self.fetch_btn.config(state="disabled")
         self.save_btn.config(state="disabled")
+        self.export_csv_btn.config(state="disabled")
+        self.export_infographic_btn.config(state="disabled")
         self.status_var.set("Fetching coordinates...")
         self.tree.delete(*self.tree.get_children())
         if self.canvas_widget:
@@ -495,6 +517,7 @@ class WeatherJuiceApp:
 
     def update_ui(self, df, fig, units):
         self.current_fig = fig
+        self._last_df = df
         # Update Treeview
         temp_unit = "°F" if units == "imperial" else "°C"
         precip_unit = "inch" if units == "imperial" else "mm"
@@ -515,9 +538,117 @@ class WeatherJuiceApp:
         self.status_var.set("Ready.")
         self.fetch_btn.config(state="normal")
         self.save_btn.config(state="normal")
+        self.export_csv_btn.config(state="normal")
+        self.export_infographic_btn.config(state="normal")
         # Save settings after successful fetch
         self.save_settings()
 
+    # ----- CSV Export -----
+    def export_csv(self):
+        """Export the current processed data to CSV using output.export_to_csv."""
+        if not hasattr(self, '_last_city') or not hasattr(self, '_last_period'):
+            messagebox.showwarning("Warning", "No data available to export. Please fetch data first.")
+            return
+        try:
+            # We need the processed DataFrame; we can regenerate or store it.
+            # For simplicity, we'll call the processing again with last used params.
+            # But we can store the last_df in update_ui.
+            if not hasattr(self, '_last_df'):
+                messagebox.showwarning("Warning", "No processed data stored. Please fetch data again.")
+                return
+            df = self._last_df
+            city = self._last_city
+            period = self._last_period
+            filename = export_to_csv(df, city, period)
+            messagebox.showinfo("Success", f"Data exported to {filename}")
+        except Exception as e:
+            logger.error("Failed to export CSV", exc_info=True)
+            messagebox.showerror("Error", f"Failed to export CSV:\n{e}")
+
+    # ----- Infogr.am Integration -----
+    def set_infograma_key(self):
+        """Prompt user for Infogr.am API key and store it."""
+        key = simpledialog.askstring("Infogr.am API Key", "Enter your Infogr.am API key:", show='*')
+        if key is not None:
+            self._infograma_key = key.strip()
+            self.save_settings()
+            messagebox.showinfo("Success", "Infogr.am API key saved.")
+        else:
+            # user cancelled or left empty
+            pass
+
+    def export_csv_and_infographic(self):
+        """Export CSV and then send data to Infogr.am to create an infographic."""
+        if not hasattr(self, '_last_city') or not hasattr(self, '_last_period'):
+            messagebox.showwarning("Warning", "No data available to export. Please fetch data first.")
+            return
+        # Ensure we have stored dataframe
+        if not hasattr(self, '_last_df'):
+            messagebox.showwarning("Warning", "No processed data stored. Please fetch data again.")
+            return
+        df = self._last_df
+        city = self._last_city
+        period = self._last_period
+        # Export CSV first
+        try:
+            csv_filename = export_to_csv(df, city, period)
+            logger.info("CSV exported to %s", csv_filename)
+        except Exception as e:
+            logger.error("Failed to export CSV", exc_info=True)
+            messagebox.showerror("Error", f"Failed to export CSV:\n{e}")
+            return
+
+        # Get API key from settings or environment
+        api_key = getattr(self, "_infograma_key", "")
+        if not api_key:
+            # try environment variable as fallback
+            api_key = os.getenv("INFOGRAM_API_KEY", "")
+        if not api_key:
+            messagebox.showwarning("API Key Missing",
+                                   "Infogr.am API key is not set.\n"
+                                   "Click 'Infogr.am Key' button to enter it or set environment variable INFOGRAM_API_KEY.")
+            return
+
+        # Prepare data for Infogr.am (simplified)
+        # According to Infogr.am REST API, you can create an object with data.
+        # We'll assume endpoint: https://infogr.am/v1/objects
+        # We'll send a JSON payload with type: "infographic" and data: CSV content.
+        import requests
+        try:
+            with open(csv_filename, 'r', encoding='utf-8') as f:
+                csv_content = f.read()
+            url = "https://infogr.am/v1/objects"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "type": "infographic",
+                "data": {
+                    "csv": csv_content
+                },
+                "name": f"WeatherSnake {city} {period}"
+            }
+            logger.info("Sending request to Infogr.am")
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
+            if response.status_code in (200, 201):
+                result = response.json()
+                object_url = result.get("data", {}).get("url") or result.get("url")
+                if object_url:
+                    messagebox.showinfo("Infogr.am Success",
+                                        f"Infographic created successfully!\nView it here:\n{object_url}")
+                else:
+                    messagebox.showinfo("Infogr.am Success",
+                                        f"Infographic created (response: {result})")
+            else:
+                logger.error("Infogr.am API error: %s - %s", response.status_code, response.text)
+                messagebox.showerror("Infogr.am Error",
+                                     f"Failed to create infographic.\nStatus: {response.status_code}\n{response.text}")
+        except Exception as e:
+            logger.error("Exception during Infogr.am request", exc_info=True)
+            messagebox.showerror("Error", f"An error occurred while contacting Infogr.am:\n{e}")
+
+    # ----- Existing methods -----
     def _generate_filename(self):
         """Generate a descriptive default filename from the last fetch parameters."""
         city = getattr(self, '_last_city', 'weather')
@@ -552,6 +683,8 @@ class WeatherJuiceApp:
         self.status_var.set("Error occurred.")
         self.fetch_btn.config(state="normal")
         self.save_btn.config(state="disabled")
+        self.export_csv_btn.config(state="disabled")
+        self.export_infographic_btn.config(state="disabled")
 
 
 if __name__ == "__main__":
