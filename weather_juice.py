@@ -9,21 +9,96 @@ from output import print_summary, export_to_csv, generate_visualizations
 
 logger = logging.getLogger(__name__)
 
+PRESETS = ["Cape Town", "Johannesburg", "Durban"]
+
+
 def main():
     setup_logging()
-    parser = argparse.ArgumentParser(description="Weather Juice - Historical weather averages and visualizations.")
-    parser.add_argument("--city", type=str, required=True, help="Location name or preset (Cape Town, Johannesburg, Durban).")
-    parser.add_argument("--period", type=str, choices=["Summer", "Autumn", "Winter", "Spring", "Full Year"], default=None, help="Season or full year.")
-    parser.add_argument("--depth", type=int, choices=[1, 5, 10, 20], default=None, help="Analysis depth in years (1, 5, 10, or 20).")
-    parser.add_argument("--units", type=str, choices=["metric", "imperial"], default="metric", help="Unit system: metric or imperial.")
-    parser.add_argument("--monthly", action="store_true", help="Toggle monthly-only averages.")
-    parser.add_argument("--unify-scales", action="store_true", help="Unify the temperature and precipitation Y-axis scales.")
-    parser.add_argument("--start-day", type=int, default=None, help="Custom range start day (1-31). Requires --start-month, --end-day, --end-month, --depth.")
-    parser.add_argument("--start-month", type=int, default=None, help="Custom range start month (1-12).")
-    parser.add_argument("--end-day", type=int, default=None, help="Custom range end day (1-31).")
-    parser.add_argument("--end-month", type=int, default=None, help="Custom range end month (1-12).")
+    parser = argparse.ArgumentParser(
+        description="Weather Juice - Historical weather averages and visualizations.",
+        epilog=(
+            "Examples:\n"
+            "  python weather_juice.py --city \"Cape Town\" --period Summer --depth 10 --units metric\n"
+            "  python weather_juice.py --city Johannesburg --period Winter --depth 5 --units imperial\n"
+            "  python weather_juice.py --city \"Durban\" --start-day 15 --start-month 11 --end-day 28 --end-month 2 --depth 10\n"
+            "  python weather_juice.py --list-presets\n"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--city",
+        type=str,
+        required=True,
+        help="Location name or preset (Cape Town, Johannesburg, Durban).",
+    )
+    parser.add_argument(
+        "--period",
+        type=str,
+        choices=["Summer", "Autumn", "Winter", "Spring", "Full Year"],
+        default=None,
+        help="Season or full year. Required when not using a custom range.",
+    )
+    parser.add_argument(
+        "--depth",
+        type=int,
+        choices=[1, 5, 10, 20],
+        default=None,
+        help="Analysis depth in years (1, 5, 10, or 20).",
+    )
+    parser.add_argument(
+        "--units",
+        type=str,
+        choices=["metric", "imperial"],
+        default="metric",
+        help="Unit system: metric (°C, mm) or imperial (°F, inch).",
+    )
+    parser.add_argument(
+        "--monthly",
+        action="store_true",
+        help="Toggle monthly-only averages.",
+    )
+    parser.add_argument(
+        "--unify-scales",
+        action="store_true",
+        help="Unify the temperature and precipitation Y-axis scales.",
+    )
+    parser.add_argument(
+        "--start-day",
+        type=int,
+        default=None,
+        help="Custom range start day (1-31). Requires --start-month, --end-day, --end-month, --depth.",
+    )
+    parser.add_argument(
+        "--start-month",
+        type=int,
+        default=None,
+        help="Custom range start month (1-12).",
+    )
+    parser.add_argument(
+        "--end-day",
+        type=int,
+        default=None,
+        help="Custom range end day (1-31).",
+    )
+    parser.add_argument(
+        "--end-month",
+        type=int,
+        default=None,
+        help="Custom range end month (1-12).",
+    )
+    parser.add_argument(
+        "--list-presets",
+        action="store_true",
+        help="Show the built-in city list and exit.",
+    )
 
     args = parser.parse_args()
+
+    if args.list_presets:
+        print("Built‑in location presets:")
+        for c in PRESETS:
+            print(f"  - {c}")
+        return
 
     # Determine mode: custom range or season-based
     cr_args = [args.start_day, args.start_month, args.end_day, args.end_month]
@@ -93,6 +168,7 @@ def main():
     print_summary(processed_df, args.city, period, args.units)
     export_to_csv(processed_df, args.city, period)
     generate_visualizations(processed_df, args.city, period, args.units, monthly, args.unify_scales)
+
 
 if __name__ == "__main__":
     main()

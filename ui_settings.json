@@ -1,0 +1,14 @@
+{
+  "city": "Cape Town",
+  "period": "Month",
+  "depth": 10,
+  "units": "metric",
+  "monthly": true,
+  "unify_scales": true,
+  "precip_threshold": 2.5,
+  "start_month": 1,
+  "start_day": 1,
+  "end_month": 3,
+  "end_day": 31,
+  "selected_month": 7
+}
