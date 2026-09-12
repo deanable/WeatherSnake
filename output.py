@@ -7,6 +7,8 @@ import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.image import imread
 
+from chart_theme import PALETTE, apply_mpl_theme
+
 logger = logging.getLogger(__name__)
 
 
@@ -243,22 +245,31 @@ def generate_visualizations(df: pd.DataFrame, city: str, period: str, units: str
     return filename
 
 def create_visualization_figure(df: pd.DataFrame, city: str, period: str, units: str, monthly: bool, unify_scales: bool = True):
-    """Creates a matplotlib Figure for the weather data (useful for UI embedding).
+    """Creates a themed matplotlib Figure for the weather data.
 
     Uses Figure() directly instead of plt.subplots() to avoid Tk event loop
-    conflicts when called from a background thread.
+    conflicts when called from a background thread. Styling comes from
+    chart_theme so the figure matches the GUI and the QuickChart renderer.
     """
+    apply_mpl_theme()
+
     tu = temp_unit(units)
     pu = precip_unit(units)
 
-    fig = Figure(figsize=(10, 6))
+    fig = Figure(figsize=(10, 6), layout="constrained")
     ax1 = fig.add_subplot(111)
 
     ax1.set_xlabel('Date' if not monthly else 'Month')
-    ax1.set_ylabel(f'Temperature ({tu})', color='tab:red')
-    ax1.plot(df['date_label'], df['temp_max'], color='tab:red', label='Max Temp', marker='o')
-    ax1.plot(df['date_label'], df['temp_min'], color='tab:orange', label='Min Temp', marker='x')
-    ax1.tick_params(axis='y', labelcolor='tab:red')
+    ax1.set_ylabel(f'Temperature ({tu})')
+
+    # Temperature band between the daily max and min, then the two lines on
+    # top of it (weather-approve warm/cool pairing from the palette).
+    ax1.fill_between(df['date_label'], df['temp_min'], df['temp_max'],
+                     color=PALETTE['temp_warm'], alpha=0.08, linewidth=0)
+    ax1.plot(df['date_label'], df['temp_max'], color=PALETTE['temp_warm'],
+             label='Max Temp', marker='o', markersize=4, zorder=3)
+    ax1.plot(df['date_label'], df['temp_min'], color=PALETTE['temp_cool'],
+             label='Min Temp', marker='x', markersize=4, zorder=3)
 
     if not monthly and len(df) > 15:
         ax1.tick_params(axis='x', rotation=90)
@@ -266,9 +277,25 @@ def create_visualization_figure(df: pd.DataFrame, city: str, period: str, units:
         ax1.tick_params(axis='x', rotation=45)
 
     ax2 = ax1.twinx()
-    ax2.set_ylabel(f'Precipitation ({pu})', color='tab:blue')
-    ax2.bar(df['date_label'], df['precip_sum'], color='tab:blue', alpha=0.3, label='Rainfall')
-    ax2.tick_params(axis='y', labelcolor='tab:blue')
+    ax2.set_ylabel(f'Precipitation ({pu})')
+    ax2.bar(df['date_label'], df['precip_sum'], color=PALETTE['precipitation'],
+            alpha=0.45, label='Rainfall', zorder=1)
+
+    # Draw the temperature lines above the precipitation bars: the twin axis
+    # would otherwise paint its bars over ax1's artists.
+    ax1.set_zorder(ax2.get_zorder() + 1)
+    ax1.patch.set_visible(False)
+
+    # Twin axes re-enable the right spine; keep it subtle and match the left.
+    for spine in ('left', 'right', 'bottom'):
+        ax2.spines[spine].set_visible(spine == 'right')
+        ax2.spines[spine].set_color(PALETTE['divider'])
+
+    # Horizontal grid only, drawn under the data; skip ax2 to avoid double
+    # rules from the twin axis.
+    ax1.grid(axis='y', color=PALETTE['divider'], linewidth=0.8, alpha=0.9)
+    ax1.set_axisbelow(True)
+    ax2.grid(False)
 
     if unify_scales:
         min_val = min(df['temp_min'].min(), df['precip_sum'].min())
@@ -285,13 +312,12 @@ def create_visualization_figure(df: pd.DataFrame, city: str, period: str, units:
     ax1.set_title(f"Historical Weather for {city} ({period})")
 
     # Watermark logo in bottom-left corner
+    # Watermark logo in bottom-left corner (add_axes figures are excluded
+    # from the constrained-layout manager, so it stays pinned).
     if os.path.isfile(LOGO_PATH):
         logo = imread(LOGO_PATH)
-        # Place a small axes in the bottom-left for the watermark
         logo_ax = fig.add_axes([0.01, 0.01, 0.04, 0.04])
         logo_ax.imshow(logo)
         logo_ax.set_axis_off()
-
-    fig.tight_layout()
 
     return fig

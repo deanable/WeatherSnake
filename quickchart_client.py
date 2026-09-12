@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import requests
 
+from chart_theme import PALETTE, rgba
 from output import temp_unit, precip_unit
 
 logger = logging.getLogger(__name__)
@@ -62,8 +63,8 @@ def chart_config(df: pd.DataFrame, city: str, period: str, units: str) -> Dict[s
                     "type": "line",
                     "label": f"Max Temp ({tu})",
                     "data": [round(float(v), 2) for v in df["temp_max"]],
-                    "borderColor": "#d62728",
-                    "backgroundColor": "#d62728",
+                    "borderColor": PALETTE["temp_warm"],
+                    "backgroundColor": PALETTE["temp_warm"],
                     "pointRadius": 2 if show_markers else 0,
                     "fill": False,
                     "yAxisID": "y",
@@ -72,8 +73,8 @@ def chart_config(df: pd.DataFrame, city: str, period: str, units: str) -> Dict[s
                     "type": "line",
                     "label": f"Min Temp ({tu})",
                     "data": [round(float(v), 2) for v in df["temp_min"]],
-                    "borderColor": "#ff7f0e",
-                    "backgroundColor": "#ff7f0e",
+                    "borderColor": PALETTE["temp_cool"],
+                    "backgroundColor": PALETTE["temp_cool"],
                     "pointRadius": 2 if show_markers else 0,
                     "fill": False,
                     "yAxisID": "y",
@@ -81,8 +82,8 @@ def chart_config(df: pd.DataFrame, city: str, period: str, units: str) -> Dict[s
                 {
                     "label": f"Precip ({pu})",
                     "data": [round(float(v), 2) for v in df["precip_sum"]],
-                    "backgroundColor": "rgba(31, 119, 180, 0.4)",
-                    "borderColor": "#1f77b4",
+                    "backgroundColor": rgba(PALETTE["precipitation"], 0.45),
+                    "borderColor": PALETTE["precipitation"],
                     "yAxisID": "y1",
                 },
             ],
@@ -99,14 +100,14 @@ def chart_config(df: pd.DataFrame, city: str, period: str, units: str) -> Dict[s
                         "id": "y",
                         "position": "left",
                         "scaleLabel": {"display": True, "labelString": f"Temperature ({tu})"},
-                        "ticks": {"color": "#d62728"},
+                        "ticks": {"color": PALETTE["temp_warm"]},
                     },
                     {
                         "id": "y1",
                         "position": "right",
                         "gridLines": {"drawOnChartArea": False},
                         "scaleLabel": {"display": True, "labelString": f"Precipitation ({pu})"},
-                        "ticks": {"color": "#1f77b4"},
+                        "ticks": {"color": PALETTE["precipitation"]},
                     },
                 ],
                 "xAxes": [
