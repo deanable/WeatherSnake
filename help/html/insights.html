@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="insights">
+<title>Conditions &amp; Extremes — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Conditions &amp; Extremes</h1>
+
+<p>The <strong>Conditions &amp; Extremes</strong> checkbox adds the analytical summary under
+the chart: what the weather is usually <em>like</em> in the window, and how far from "usual"
+it can stray. Averages alone hide this; two windows with identical averages can behave very
+differently.</p>
+
+<h2>What each line means</h2>
+<pre>Variability &amp; Extremes
+------------------------------------------------------------
+  Typical daily high: 26.2°C (range usually 21.5°C to 31.1°C)
+  Typical daily low:  18.9°C (range usually 15.2°C to 23.0°C)
+  Record low/high in window: 9.4°C / 38.7°C
+
+  Mean season total precipitation: 312.0 mm
+  Wettest year:  2022 (589.0 mm)
+  Driest year:   2018 (120.0 mm)
+  Years above average: 4 of 10
+  Rain days per year: 38 avg (max 61)</pre>
+
+<table>
+	<tr><th>Line</th><th>How to read it</th></tr>
+	<tr><td><strong>Typical daily high / low</strong></td><td>The mean, followed by the 5th–95th percentile range: 9 out of 10 days historically fall inside it. Plan around the range, not just the mean.</td></tr>
+	<tr><td><strong>Record low/high in window</strong></td><td>The most extreme single days observed across all analyzed years. Useful for hard limits (frost risk, heat stress).</td></tr>
+	<tr><td><strong>Mean season total precipitation</strong></td><td>The average sum of rain over the whole window.</td></tr>
+	<tr><td><strong>Wettest / driest year</strong></td><td>The occurrence of the window with the most/least total rain — the realistic best/worst case across your depth.</td></tr>
+	<tr><td><strong>Years above average</strong></td><td>How many of the analyzed years exceeded the mean total; near half suggests steady behaviour, far from half suggests clustered wet/dry spells.</td></tr>
+	<tr><td><strong>Rain days per year</strong></td><td>Days with ≥ 1 mm per occurrence of the window, on average and at the maximum. A season can have high totals from few rainy days — or the opposite.</td></tr>
+</table>
+
+<div class="tip"><strong>Combining views:</strong> tick <em>Yearly Breakdown</em> too for the
+year-by-year numbers behind these summary lines, and read them together with the
+<a href="conditions.html">condition distribution</a>.</div>
+
+<h2>Command line equivalent</h2>
+<p>Variability and extremes print by default; skip them with
+<span class="kbd">--no-insights</span>:</p>
+<pre>python weather_juice.py --city "Cape Town" --period Summer --depth 10</pre>
+
+<footer class="nav-footer">
+	<a href="yearly.html">Next: Yearly Breakdown →</a> · <a href="conditions.html">← Weather Conditions</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

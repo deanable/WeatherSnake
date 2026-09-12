@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="cli">
+<title>CLI Reference — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Command-Line Reference</h1>
+
+<p>The CLI (<span class="kbd">weather_juice.py</span>, or
+<span class="kbd">WeatherSnake-CLI</span> in packaged builds) runs the same analysis engine as
+the GUI in a scriptable form. Every run prints the summary, then writes
+<span class="kbd">weather_report_&lt;city&gt;_&lt;period&gt;.csv</span> and
+<span class="kbd">weather_plot_&lt;city&gt;_&lt;period&gt;.png</span>.</p>
+
+<h2>Options</h2>
+<table>
+	<tr><th>Option</th><th>Description</th></tr>
+	<tr><td><span class="kbd">--city</span></td><td>Location name or preset (Cape Town, Johannesburg, Durban). Required unless <span class="kbd">--list-presets</span>.</td></tr>
+	<tr><td><span class="kbd">--period</span></td><td><span class="kbd">Summer</span>, <span class="kbd">Autumn</span>, <span class="kbd">Winter</span>, <span class="kbd">Spring</span>, or <span class="kbd">Full Year</span>. Required unless using a custom range.</td></tr>
+	<tr><td><span class="kbd">--depth</span></td><td>Years of history to analyze: 1, 3, 5, 7, 10, 15, or 20.</td></tr>
+	<tr><td><span class="kbd">--units</span></td><td><span class="kbd">metric</span> (°C, mm) or <span class="kbd">imperial</span> (°F, inch). Default metric.</td></tr>
+	<tr><td><span class="kbd">--monthly</span></td><td>Monthly averages instead of day-of-year values.</td></tr>
+	<tr><td><span class="kbd">--unify-scales</span></td><td>Share the Y-axis range between temperature and precipitation.</td></tr>
+	<tr><td><span class="kbd">--precip-threshold MM</span></td><td>Zero out daily precipitation below this many mm (excludes dew/frost).</td></tr>
+	<tr><td><span class="kbd">--start-day / --start-month / --end-day / --end-month</span></td><td>Custom day/month window; all four must be given together and require <span class="kbd">--depth</span>.</td></tr>
+	<tr><td><span class="kbd">--no-insights</span></td><td>Skip the condition and variability/extremes summaries.</td></tr>
+	<tr><td><span class="kbd">--yearly</span></td><td>Year-by-year breakdown with trend-per-decade estimates.</td></tr>
+	<tr><td><span class="kbd">--compare-recent N</span></td><td>Compare the most recent N complete years against a baseline window (see <a href="comparison.html">Recent vs Baseline</a>).</td></tr>
+	<tr><td><span class="kbd">--compare-baseline M</span></td><td>Baseline depth in years for <span class="kbd">--compare-recent</span> (default 10). Requires <span class="kbd">--depth ≥ N + M</span>.</td></tr>
+	<tr><td><span class="kbd">--list-presets</span></td><td>Show the built-in city list and exit.</td></tr>
+</table>
+
+<h2>Examples</h2>
+<pre># Winter averages for Cape Town over the last 10 years
+python weather_juice.py --city "Cape Town" --period Winter --depth 10
+
+# Are recent summers different from the past 10 years?
+python weather_juice.py --city Durban --period Summer --depth 20 --yearly --compare-recent 5
+
+# Custom window crossing the year boundary, imperial units, ignore dew
+python weather_juice.py --city "Cape Town" --start-day 15 --start-month 11 --end-day 28 --end-month 2 --depth 10 --units imperial --precip-threshold 1.0
+
+# List the built-in presets
+python weather_juice.py --list-presets</pre>
+
+<div class="note">Running <span class="kbd">python weather_juice.py --help</span> always shows
+the option list for your installed version.</div>
+
+<footer class="nav-footer">
+	<a href="data.html">Next: Data Sources &amp; Accuracy →</a> · <a href="keyboard.html">← Keyboard Shortcuts</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

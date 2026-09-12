@@ -1,0 +1,247 @@
+name: Build & Release
+
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+        cache: pip
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: pytest test_processing.py test_insights.py -q
+
+  build:
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+          - os: ubuntu-latest
+            platform: linux
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+        cache: pip
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller pillow
+        pip install -r requirements.txt
+
+    - name: Derive version from tag
+      shell: bash
+      run: |
+        if [[ "$GITHUB_REF_NAME" == v* ]]; then
+          VERSION="${GITHUB_REF_NAME#v}"
+        else
+          VERSION="0.0.0-dev.$(date +%Y%m%d%H%M%S)"
+        fi
+        echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+        echo "Building version $VERSION"
+
+    - name: Stamp version into version.py
+      shell: bash
+      run: |
+        sed -i.bak "s/^VERSION = .*/VERSION = \"${{ env.VERSION }}\"/" version.py
+        rm -f version.py.bak
+        python -c "import version; assert version.VERSION == '${{ env.VERSION }}', version.VERSION"
+
+    - name: Generate Windows icon from logo
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        python - <<'PY'
+        from PIL import Image
+        img = Image.open("assets/logo.png").convert("RGBA")
+        img.save("assets/logo.ico", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+        print("Generated assets/logo.ico")
+        PY
+
+    # The compiled help is authored once (help/html) and shipped everywhere:
+    # a .chm for Windows and the same pages as the browser fallback elsewhere.
+    - name: Compile help (WeatherSnake.chm)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        choco install html-help-workshop -y --no-progress
+        $env:PATH = "C:\Program Files (x86)\HTML Help Workshop;$env:PATH"
+        python build_chm.py --compile
+        if (-not (Test-Path "help/html/WeatherSnake.chm")) { throw "WeatherSnake.chm was not produced" }
+        Write-Host "CHM compiled: $((Get-Item 'help/html/WeatherSnake.chm').Length) bytes"
+
+    - name: Build GUI & CLI executables (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        pyinstaller --onefile --clean --noconsole --icon assets/logo.ico --name WeatherSnake --add-data "assets;assets" --add-data "help/html/WeatherSnake.chm;." --add-data "help/html;help/html" ui_app.pyw
+        pyinstaller --onefile --clean --icon assets/logo.ico --name WeatherSnake-CLI --add-data "assets;assets" --add-data "help/html/WeatherSnake.chm;." --add-data "help/html;help/html" weather_juice.py
+
+    - name: Build CLI executable (macOS/Linux)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        pyinstaller --onefile --clean --name WeatherSnake-CLI --add-data "assets:assets" --add-data "help/html:help/html" weather_juice.py
+
+    - name: Build GUI app bundle (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        # --windowed without --onefile produces the .app bundle macOS users expect
+        pyinstaller --clean --windowed --name WeatherSnake --add-data "assets:assets" --add-data "help/html:help/html" ui_app.pyw
+
+    - name: Build GUI executable (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        pyinstaller --onefile --clean --windowed --name WeatherSnake --add-data "assets:assets" --add-data "help/html:help/html" ui_app.pyw
+
+    # ----- Windows packaging: Inno Setup installer + portable zip -----
+    - name: Build Windows installer (Inno Setup)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        ISCC=$(ls "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" 2>/dev/null || ls "/c/Program Files/Inno Setup 6/ISCC.exe" 2>/dev/null)
+        # /O pins the output dir to the working dir regardless of script location
+        "$ISCC" //DAppVersion="${{ env.VERSION }}" //O"$(pwd)/packaging/installer" packaging/installers.iss
+        mv packaging/installer/WeatherSnake-*.exe dist/
+
+    - name: Zip portable binaries (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: Compress-Archive -Path dist/WeatherSnake.exe, dist/WeatherSnake-CLI.exe -DestinationPath dist/WeatherSnake-${{ env.VERSION }}-windows-x64-portable.zip -Force
+
+    # ----- macOS packaging: .app bundle + drag-to-Install .dmg -----
+    - name: Package macOS dmg
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        mkdir -p dmg-stage
+        cp -R dist/WeatherSnake.app dmg-stage/
+        cp dist/WeatherSnake-CLI dmg-stage/WeatherSnake-CLI
+        cp -R help/html dmg-stage/help
+        ln -s /Applications dmg-stage/Applications
+        hdiutil create -volname "WeatherSnake ${{ env.VERSION }}" -srcfolder dmg-stage -ov -format UDZO \
+          "dist/WeatherSnake-${{ env.VERSION }}-macos.dmg"
+        zip -qry "dist/WeatherSnake-${{ env.VERSION }}-macos-app.zip" dist/WeatherSnake.app
+
+    # ----- Linux packaging: .deb + portable tarball -----
+    - name: Package Linux deb
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        VERSION="${{ env.VERSION }}"
+        PKGROOT=deb/weathersnake
+        mkdir -p "$PKGROOT/DEBIAN" \
+                 "$PKGROOT/usr/bin" \
+                 "$PKGROOT/usr/share/applications" \
+                 "$PKGROOT/usr/share/icons/hicolor/256x256/apps" \
+                 "$PKGROOT/usr/share/doc/weathersnake/help"
+
+        install -m 755 dist/WeatherSnake       "$PKGROOT/usr/bin/weathersnake"
+        install -m 755 dist/WeatherSnake-CLI   "$PKGROOT/usr/bin/weathersnake-cli"
+        python - <<'PY'
+        from PIL import Image
+        img = Image.open("assets/logo.png").convert("RGBA")
+        img.thumbnail((256, 256))
+        img.save("deb/weathersnake/usr/share/icons/hicolor/256x256/apps/weathersnake.png")
+        PY
+
+        cat > "$PKGROOT/usr/share/applications/weathersnake.desktop" <<'DESKTOP'
+        [Desktop Entry]
+        Type=Application
+        Name=WeatherSnake
+        GenericName=Historical Weather Analyzer
+        Comment=Explore historical weather patterns, conditions, and trends
+        Exec=/usr/bin/weathersnake
+        Icon=weathersnake
+        Terminal=false
+        Categories=Science;Education;Utility;
+        Keywords=weather;climate;history;rain;temperature;
+        DESKTOP
+
+        cat > "$PKGROOT/DEBIAN/control" <<CONTROL
+        Package: weathersnake
+        Version: ${VERSION}
+        Section: science
+        Priority: optional
+        Architecture: amd64
+        Maintainer: WeatherSnake Contributors <noreply@github.com>
+        Installed-Size: $(du -sk "$PKGROOT/usr" | cut -f1)
+        Description: Historical weather analyzer with conditions, extremes, and trends
+         WeatherSnake turns decades of daily weather into practical insight:
+         multi-year averages, most-common conditions, typical ranges and
+         extremes, year-over-year trends, and recent-vs-baseline comparisons.
+         Data by the Open-Meteo Archive API (no API key required).
+        CONTROL
+
+        cp README.md "$PKGROOT/usr/share/doc/weathersnake/"
+        cp LICENSE  "$PKGROOT/usr/share/doc/weathersnake/"
+        cp -R help/html/. "$PKGROOT/usr/share/doc/weathersnake/help/"
+
+        dpkg-deb --build --root-owner-group "$PKGROOT" "dist/weathersnake_${VERSION}_amd64.deb"
+        tar -czf "dist/WeatherSnake-${VERSION}-linux-x64-portable.tar.gz" -C dist WeatherSnake WeatherSnake-CLI
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-${{ matrix.platform }}
+        path: |
+          dist/*.exe
+          dist/*.zip
+          dist/*.dmg
+          dist/*.deb
+          dist/*.tar.gz
+          dist/*.app.zip
+        if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: dist-all
+        merge-multiple: true
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          dist-all/WeatherSnake-*
+          dist-all/weathersnake_*
+        generate_release_notes: true
+        fail_on_unmatched_files: true

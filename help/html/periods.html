@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="periods">
+<title>Choosing a Period — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Choosing a Period</h1>
+
+<p>The <em>Period</em> selector picks which part of each year is analyzed:</p>
+
+<table>
+	<tr><th>Period</th><th>Window analyzed (southern-hemisphere seasons)</th><th>X axis</th></tr>
+	<tr><td><strong>Summer</strong></td><td>December – February (crosses the year boundary)</td><td>months or day-of-year</td></tr>
+	<tr><td><strong>Autumn</strong></td><td>March – May</td><td>months or day-of-year</td></tr>
+	<tr><td><strong>Winter</strong></td><td>June – August</td><td>months or day-of-year</td></tr>
+	<tr><td><strong>Spring</strong></td><td>September – November</td><td>months or day-of-year</td></tr>
+	<tr><td><strong>Full Year</strong></td><td>January – December</td><td>months or day-of-year</td></tr>
+	<tr><td><strong>Month</strong></td><td>a single calendar month (a month picker appears)</td><td>months</td></tr>
+	<tr><td><strong>Custom Range</strong></td><td>any day/month span you choose (From/To pickers appear)</td><td>auto-chosen</td></tr>
+</table>
+
+<h2>Seasons cross year boundaries</h2>
+<p>Summer runs December through February. WeatherSnake groups each December–February occurrence
+together and labels it with the year it <em>starts</em>, so "2023" means December 2023 plus
+January and February 2024. The analysis always uses complete occurrences only — a December with
+no following January/February yet is excluded rather than skewing the averages.</p>
+
+<h2>Custom ranges</h2>
+<p>Choosing <em>Custom Range</em> reveals <strong>From</strong> and <strong>To</strong>
+day/month pickers. Examples:</p>
+<ul>
+	<li><span class="kbd">15 Nov – 28 Feb</span> — the build-up to and heart of summer.</li>
+	<li><span class="kbd">1 Apr – 30 Sep</span> — a southern-hemisphere wet/dry split.</li>
+	<li><span class="kbd">24 Dec – 2 Jan</span> — the festive fortnight, year after year.</li>
+</ul>
+<p>Ranges may cross the year boundary. If the span covers more than 31 days the chart switches
+to monthly averaging automatically (as does the single-month mode); otherwise day-of-year
+averaging is used.</p>
+
+<h2>Command line equivalent</h2>
+<pre>python weather_juice.py --city Durban --period Summer --depth 10
+python weather_juice.py --city Durban --start-day 15 --start-month 11 --end-day 28 --end-month 2 --depth 10</pre>
+
+<footer class="nav-footer">
+	<a href="depth.html">Next: Analysis Depth →</a> · <a href="location.html">← Choosing a Location</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

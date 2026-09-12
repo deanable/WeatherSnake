@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="comparison">
+<title>Recent vs Baseline — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Recent vs Baseline</h1>
+
+<p>The sharpest question you can ask of historical weather: <em>are recent years actually
+different from the decades before them?</em> The comparison answers it directly by splitting
+the analyzed history into two windows and printing the difference for each metric.</p>
+
+<pre>Recent vs Baseline
+------------------------------------------------------------
+  Metric           Recent             Baseline           Change
+  Avg high         26.1°C             25.6°C             +0.5°C
+  Avg low          18.4°C             18.0°C             +0.4°C
+  Precip total     384.0 mm           341.0 mm           +43.0 mm
+------------------------------------------------------------
+  Recent window: 2021-2025 | Baseline: 2011-2020</pre>
+
+<h2>Where to find it</h2>
+<p>This view is a command-line feature:</p>
+<pre>python weather_juice.py --city Durban --period Summer --depth 20 --compare-recent 5</pre>
+<ul>
+	<li><span class="kbd">--compare-recent 5</span> — the most recent 5 complete years.</li>
+	<li><span class="kbd">--compare-baseline 10</span> (optional) — years immediately before
+	them (default 10).</li>
+</ul>
+<p>The depth must cover both windows: <span class="kbd">--depth</span> must be at least
+recent + baseline (5 + 10 = 15 in the example above; depth 20 covers it comfortably).</p>
+
+<h2>How to read the Change column</h2>
+<ul>
+	<li><strong>Avg high / Avg low</strong> — mean daily temperature difference between the two
+	windows, in your chosen <a href="units.html">units</a>.</li>
+	<li><strong>Precip total</strong> — difference in the mean per-occurrence rainfall total.</li>
+	<li>A small change over a deep baseline is a stronger signal than the same change over a
+	shallow one.</li>
+</ul>
+
+<div class="tip"><strong>GUI users:</strong> the same insight is available by ticking
+<em>Yearly Breakdown</em> and comparing the early rows with the recent ones
+(see <a href="yearly.html">Yearly Breakdown</a>).</div>
+
+<footer class="nav-footer">
+	<a href="exports.html">Next: Exporting Data →</a> · <a href="yearly.html">← Yearly Breakdown</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

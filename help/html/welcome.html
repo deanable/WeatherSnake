@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="welcome">
+<title>Welcome — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Welcome to WeatherSnake</h1>
+
+<p><strong>WeatherSnake</strong> is a historical weather analyzer. It turns decades of daily
+weather records into practical insight — multi-year averages, the most common weather
+conditions, typical ranges and extremes, year-over-year trends, and recent-versus-baseline
+comparisons — so you can reason about <em>future</em> weather by reflecting on patterns of
+the <em>past</em>.</p>
+
+<p>Weather data comes from the free
+<a href="https://open-meteo.com/">Open-Meteo Archive API</a>. No API key, registration, or
+subscription is required, and the archive reaches back to 1940.</p>
+
+<h2>What can it tell me?</h2>
+<ul>
+	<li><strong>Averages, done properly</strong> — temperature and precipitation averaged per
+	month or per day-of-year across your chosen depth of years, with dew and frost excluded
+	by a configurable precipitation threshold.</li>
+	<li><strong>Weather-condition summaries</strong> — plain-language conditions (clear,
+	overcast, drizzle, thunderstorm, …) derived from WMO weather codes, with a most-common-
+	condition distribution and rain-day share for any window
+	(see <a href="conditions.html">Weather Conditions</a>).</li>
+	<li><strong>Variability &amp; extremes</strong> — typical daily high/low ranges (5th–95th
+	percentile), record low/high, wettest and driest historical years, and rain days per year
+	(see <a href="insights.html">Conditions &amp; Extremes</a>).</li>
+	<li><strong>Trends</strong> — a year-by-year breakdown with trend-per-decade estimates, and
+	a recent-vs-baseline comparison to show whether things are shifting
+	(see <a href="yearly.html">Yearly Breakdown</a> and <a href="comparison.html">Recent vs Baseline</a>).</li>
+	<li><strong>Flexible windows</strong> — seasons, full year, a single month, or any custom
+	day/month range that crosses year boundaries (see <a href="periods.html">Choosing a Period</a>).</li>
+</ul>
+
+<h2>Two ways to use it</h2>
+<ul>
+	<li><strong>The desktop window</strong> — pick a location, period, and depth, then press
+	<em>Fetch Data</em>. Press <span class="kbd">F1</span> on any control for help about that
+	control (see <a href="interface.html">The WeatherSnake Window</a>).</li>
+	<li><strong>The command line</strong> — scriptable, with the same engine; see the
+	<a href="cli.html">CLI Reference</a>.</li>
+</ul>
+
+<div class="tip"><strong>Getting around this help:</strong> press <span class="kbd">F1</span>
+anywhere in the application for context-sensitive help, or browse the Contents tab. Every
+topic ends with links to related topics.</div>
+
+<footer class="nav-footer">
+	<a href="getting-started.html">Next: Getting Started →</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

@@ -1,0 +1,124 @@
+/* WeatherSnake help system styles (HTML Help 1 compatible) */
+body {
+	font-family: "Segoe UI", Verdana, Tahoma, sans-serif;
+	font-size: 10pt;
+	color: #1f2933;
+	background: #ffffff;
+	margin: 0;
+	padding: 14px 20px 20px 20px;
+	line-height: 1.5;
+}
+
+h1 {
+	font-size: 17pt;
+	color: #0b5394;
+	border-bottom: 2px solid #0b5394;
+	padding-bottom: 4px;
+	margin-top: 4px;
+}
+
+h2 {
+	font-size: 12.5pt;
+	color: #0b5394;
+	margin-top: 18px;
+}
+
+h3 {
+	font-size: 11pt;
+	color: #334e68;
+}
+
+a { color: #0b5394; }
+a:hover { color: #d05c14; }
+
+code, tt {
+	font-family: Consolas, "Courier New", monospace;
+	font-size: 9pt;
+	background: #f0f4f8;
+	padding: 1px 4px;
+	border-radius: 3px;
+}
+
+pre {
+	font-family: Consolas, "Courier New", monospace;
+	font-size: 9pt;
+	background: #f0f4f8;
+	border: 1px solid #d9e2ec;
+	border-radius: 4px;
+	padding: 8px 10px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+}
+
+table {
+	border-collapse: collapse;
+	margin: 8px 0 14px 0;
+	width: 100%;
+}
+
+th {
+	background: #0b5394;
+	color: #ffffff;
+	text-align: left;
+	padding: 4px 8px;
+	font-size: 9.5pt;
+}
+
+td {
+	border: 1px solid #cbd2d9;
+	padding: 4px 8px;
+	font-size: 9.5pt;
+	vertical-align: top;
+}
+
+tr:nth-child(even) td { background: #f8fafc; }
+
+.note {
+	background: #fff8e1;
+	border-left: 4px solid #f9a825;
+	padding: 6px 10px;
+	margin: 10px 0;
+}
+
+.tip {
+	background: #e8f5e9;
+	border-left: 4px solid #43a047;
+	padding: 6px 10px;
+	margin: 10px 0;
+}
+
+.warning {
+	background: #fdecea;
+	border-left: 4px solid #d05c14;
+	padding: 6px 10px;
+	margin: 10px 0;
+}
+
+.top-nav {
+	font-size: 9pt;
+	color: #616e7c;
+	border-bottom: 1px solid #d9e2ec;
+	padding-bottom: 6px;
+	margin-bottom: 12px;
+}
+
+.nav-footer {
+	border-top: 1px solid #d9e2ec;
+	margin-top: 20px;
+	padding-top: 8px;
+	font-size: 9pt;
+	color: #616e7c;
+}
+
+.kbd {
+	font-family: Consolas, "Courier New", monospace;
+	font-size: 9pt;
+	border: 1px solid #cbd2d9;
+	border-bottom-width: 2px;
+	border-radius: 3px;
+	background: #f8fafc;
+	padding: 0 4px;
+}
+
+ul, ol { margin-top: 6px; }
+li { margin-bottom: 3px; }

@@ -1,84 +1,176 @@
 # WeatherSnake
 
-A simple historical weather analyzer that fetches multi‑year averages for temperature and precipitation and visualizes them.
+A historical weather analyzer that turns decades of daily weather into practical insight: multi-year averages, most-common conditions, typical ranges and extremes, year-over-year trends, and recent-vs-baseline comparisons — so you can reason about future weather by reflecting on the past.
+
+Weather data comes from the free [Open-Meteo](https://open-meteo.com/) Archive API — no API key required.
 
 ## Features
 
-- **CLI** (`weather_juice.py`) – scriptable, supports custom date ranges, seasons, depth (years of history), metric/imperial units.
-- **GUI** (`ui_app.pyw`) – friendly Tkinter interface with presets, monthly averages, shared Y‑axis option, and export to JPG.
-- **Automatic Windows launcher** (`weather graph launch.bat`) – checks for Python, creates a virtual environment, installs dependencies, and starts the GUI.
-- **Cross‑platform** – works on any system with Python 3.11+ and the required packages.
-- **CI/CD** – GitHub Actions builds standalone executables for Windows (GUI & CLI) on every push to `main` and on version tags.
+- **Averages, done properly** — temperature and precipitation averaged per month or day-of-year across your chosen depth of years, with dew/frost excluded via a configurable precipitation threshold.
+- **Weather-condition summaries** — plain-language conditions (clear, overcast, drizzle, thunderstorm, …) derived from WMO weather codes, with a "most common condition" distribution and rain-day share for any window.
+- **Variability & extremes** — typical daily high/low ranges (5th–95th percentile), record low/high, wettest and driest historical years, years above average, and rain days per year. Not just means.
+- **Year-over-year breakdown** — per-year averages/totals with a least-squares trend-per-decade estimate for highs, lows, and precipitation.
+- **Recent vs baseline comparison** — compare the most recent N years against a baseline window to see whether things are shifting.
+- **Flexible windows** — seasons, full year, a single month, or any custom day/month range (crosses year boundaries, e.g. 15 Nov – 28 Feb).
+- **Metric or imperial** — °C/mm or °F/inches throughout, including deltas.
+- **Two interfaces** — a scriptable CLI and a desktop GUI with the same engine.
+- **Exports** — CSV of processed data, PNG/JPG chart export, and a shareable Infogr.am infographic from the GUI.
+- **Cross-platform, with installers** — native installers for Windows (setup .exe), macOS (.dmg), and Linux (.deb), plus portable builds; CI produces them all on version tags.
+- **Built-in help system** — a compiled HTML Help manual (`WeatherSnake.chm`, 19 topics) shipped inside the app, with a Help menu, context-sensitive F1 on every control, keyboard shortcuts, and a browser-based fallback on macOS/Linux.
 
-## Quick Start (Windows)
+## Quick Start
 
-1. Download the latest release from the [Releases](https://github.com/deanable/WeatherSnake/releases) page (either the GUI or CLI `.exe`).
-2. Double‑click the executable – no installation required.
+### Windows
 
-   *Or* use the provided batch file:
-   1. Ensure you have git and an internet connection.
-   2. Double‑click `weather graph launch.bat`.
-   3. The script will download the source, set up a virtual environment, install dependencies, and launch the GUI.
+1. Download `WeatherSnake-<version>-windows-setup.exe` from the [Releases](https://github.com/deanable/WeatherSnake/releases) page.
+2. Run it — Start Menu shortcuts, an optional desktop icon, and an uninstaller are set up for you. (A per-user install is offered if you don't have admin rights.)
+
+Prefer no installation? Grab `WeatherSnake-<version>-windows-x64-portable.zip` or the raw `WeatherSnake.exe` / `WeatherSnake-CLI.exe`.
+
+*Or* run `weather graph launch.bat`, which checks for Python, creates a virtual environment, installs dependencies, and starts the GUI.
+
+### macOS
+
+1. Download `WeatherSnake-<version>-macos.dmg` from Releases.
+2. Open it and drag **WeatherSnake** into **Applications**. (The CLI binary is included on the disk image.)
+
+### Linux
+
+```bash
+sudo dpkg -i weathersnake_<version>_amd64.deb
+weathersnake        # GUI (also in your app menu)
+weathersnake-cli    # command line
+```
+
+A portable tarball (`WeatherSnake-<version>-linux-x64-portable.tar.gz`) is also available if you'd rather not install anything.
+
+### From source (any platform)
+
+### From source (any platform)
+
+```bash
+pip install -r requirements.txt
+python3 weather_juice.py --city "Cape Town" --period Winter --depth 10
+```
 
 ## Usage
 
-### Command‑line interface
+### Command-line interface
 
 ```bash
-python weather_juice.py --city "Cape Town" --period Summer --depth 10 --units metric
+# Winter averages for Cape Town over the last 10 years
+python weather_juice.py --city "Cape Town" --period Winter --depth 10
+
+# Are recent summers different from the past 10 years?
+python weather_juice.py --city Durban --period Summer --depth 20 --yearly --compare-recent 5
+
+# Custom window crossing the year boundary, imperial units, ignore dew
+python weather_juice.py --city "Cape Town" --start-day 15 --start-month 11 --end-day 28 --end-month 2 --depth 10 --units imperial --precip-threshold 1.0
 ```
+
+Every run prints a summary table, saves `weather_report_<city>_<period>.csv`, and saves `weather_plot_<city>_<period>.png`.
 
 **Options**
 
 | Option | Description |
 |--------|-------------|
-| `--city` | Location name or one of the presets: Cape Town, Johannesburg, Durban. |
-| `--period` | Season (`Summer`, `Autumn`, `Winter`, `Spring`) or `Full Year`. Required unless using `--start-day`/`--start-month`/`--end-day`/`--end-month` for a custom range. |
-| `--depth` | Number of past years to average (1, 5, 10, or 20). |
+| `--city` | Location name or preset (Cape Town, Johannesburg, Durban). |
+| `--period` | `Summer`, `Autumn`, `Winter`, `Spring`, or `Full Year`. Required unless using a custom range. |
+| `--depth` | Years of history to analyze: 1, 3, 5, 7, 10, 15, or 20. |
 | `--units` | `metric` (°C, mm) or `imperial` (°F, inch). |
-| `--monthly` | Output monthly averages instead of daily‑of‑year values. |
-| `--unify-scales` | Use the same Y‑axis range for temperature and precipitation. |
-| `--start-day`, `--start-month`, `--end-day`, `--end-month` | Define a custom day‑month range (requires `--depth`). All four must be supplied together. |
-| `--list-presets` | Show the built‑in city list and exit. |
+| `--monthly` | Monthly averages instead of day-of-year values. |
+| `--unify-scales` | Share the Y-axis range between temperature and precipitation. |
+| `--precip-threshold MM` | Zero out daily precipitation below this many mm (excludes dew/frost). |
+| `--no-insights` | Skip the condition and variability/extremes summaries. |
+| `--yearly` | Year-by-year breakdown with trend-per-decade estimates. |
+| `--compare-recent N` | Compare the most recent N years against a baseline window. |
+| `--compare-baseline M` | Baseline depth in years for `--compare-recent` (default 10). Requires `--depth >= N + M`. |
+| `--start-day/--start-month/--end-day/--end-month` | Custom day-month window (all four together, requires `--depth`). |
+| `--list-presets` | Show the built-in city list. |
 
-**Examples**
+**Sample output**
 
-```bash
-# Summer averages for Johannesburg over the last 5 years, imperial units
-python weather_juice.py --city Johannesburg --period Summer --depth 5 --units imperial
+```
+Weather Conditions (historical)
+------------------------------------------------------------
+  Drizzle                  256 days    47.4%
+  Overcast                 126 days    23.3%
+  Rain                     123 days    22.8%
+  ...
+  Rain days (>=1 mm): 45.2% of days
 
-# Custom range: 15 Nov to 28 Feb (covers austral summer) over 10 years
-python weather_juice.py --city "Cape Town" --start-day 15 --start-month 11 --end-day 28 --end-month 2 --depth 10
+Variability & Extremes
+------------------------------------------------------------
+  Typical daily high: 80.8°F (range usually 74.2°F to 87.1°F)
+  Record low/high in window: 60.3°F / 98.1°F
+  Wettest year:  2022 (22.1 inch)
+  Driest year:   2023 (11.0 inch)
 
-# Monthly precipitation for Durban, full year, metric
-python weather_juice.py --city Durban --period "Full Year" --depth 20 --monthly --units metric
+Recent vs Baseline
+------------------------------------------------------------
+  Metric           Recent             Baseline           Change
+  Avg high         16.7°C             16.5°C             +0.2°C
+  Precip total     376.1 mm           266.2 mm           +109.9 mm
 ```
 
 ### Graphical user interface
 
-- Choose a location from the dropdown or type a custom name.
-- Select a period (season, full year, month, or custom range).
-- Set the depth (years of history).
-- Pick metric or imperial units.
-- Toggle **Monthly Average** and **Shared Y‑Axis** as desired.
-- Click **Fetch Data** – the table and chart will update.
-- Use **Save to JPG** to export the current chart.
+Run `ui_app.pyw` (or the packaged executable). The GUI offers the same engine plus:
 
-The GUI remembers your last selections and restarts with them.
+- Preset or custom locations, seasons/months/custom ranges, depth and unit pickers.
+- **Conditions & Extremes** panel: most-common conditions, rain-day share, typical ranges, records, wettest/driest years.
+- **Yearly Breakdown** panel: per-year averages/totals and trends.
+- Monthly-Average and Shared-Y-Axis toggles, precipitation threshold.
+- **Help menu** (Help Topics, Getting Started, Using the Window, CLI Reference, Data Sources, Troubleshooting, Keyboard Shortcuts, About) and **context-sensitive F1**: hover or focus any control and press F1 to open the matching topic in the compiled help. `Ctrl+F1` opens the contents; `Ctrl+R` fetches, `Ctrl+S` saves the chart, `Ctrl+E` exports CSV.
+- **Save to JPG**, **Export CSV**, and **CSV + Infographic** (Infogr.am; set your key via the *Infogr.am Key* button or the `INFOGRAM_API_KEY` environment variable).
+
+Settings persist between sessions in `ui_settings.json`.
 
 ## How it works
 
-1. The application queries a public weather API (Open‑Meteo) for historical daily data.
-2. It filters the data to the requested season or custom day‑month window.
-3. It computes the mean temperature (max/min) and precipitation for each day‑of‑year or month, averaging over the requested number of years.
-4. Optionally, values are converted to imperial units.
-5. Results are shown in a table, saved as CSV, and plotted as a combined line/bar chart with a small logo watermark.
+1. Geocodes the location via Open-Meteo's Geocoding API.
+2. Fetches daily `temperature_2m_max`, `temperature_2m_min`, `precipitation_sum`, and `weather_code` from the Open-Meteo Archive API for the requested depth (cross-year windows fetch one extra leading year so the earliest occurrence is complete).
+3. Filters to the season or custom day/month window and excludes leap days.
+4. Computes averages per month/day-of-year, condition distributions, variability/extremes, per-year totals, trends, and recent-vs-baseline deltas (all cross-year groupings label an occurrence by the year it starts, and incomplete final occurrences are excluded).
+5. Converts to imperial if requested, prints summaries, and writes CSV + chart files.
+
+## Project layout
+
+| File | Purpose |
+|------|---------|
+| `weather_juice.py` | CLI entry point |
+| `ui_app.pyw` | Tkinter GUI |
+| `version.py` | Single-source app version, stamped by release CI |
+| `packaging/installers.iss` | Inno Setup script for the Windows installer |
+| `api_client.py` | Geocoding + archive fetch |
+| `processing.py` | Season/custom-range filtering and averaging |
+| `conditions.py` | WMO weather-code translation and condition distributions |
+| `stats.py` | Variability/extremes, year-over-year trends, depth comparisons |
+| `output.py` | Console/insight formatting, CSV export, matplotlib figures |
+| `logger_setup.py` | Rotating file logging (`weathersnake.log`) |
+| `help_launcher.py` | Help runtime: CHM viewer integration, F1 registry, browser fallback |
+| `help/html/` | Help topics (HTML), contents/index/project files for the CHM |
+| `build_chm.py` | Help validator + CHM compiler driver (`python build_chm.py --compile`) |
+
+## Development
+
+```bash
+pip install -r requirements.txt pytest
+pytest test_processing.py test_insights.py test_help.py -q
+
+# Validate the help tree (content, CHM project files, F1 mappings)
+python build_chm.py
+```
+
+Compiling `WeatherSnake.chm` locally requires HTML Help Workshop (Windows only); release CI installs it via Chocolatey and compiles the CHM automatically. On macOS/Linux the same HTML topics serve as the built-in help, opened in the browser.
+
+CI runs the test suite, compile checks, and help validation on Python 3.11/3.13 across Ubuntu and Windows on every push/PR; tagging `v*` builds the installers and portable packages — Windows setup .exe (Inno Setup), macOS .dmg, Linux .deb — plus portable archives, and publishes them in a GitHub release with generated notes. See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
-This project is released under the MIT License – see the `LICENSE` file for details.
+MIT — see the `LICENSE` file.
 
 ## Acknowledgments
 
-- Weather data provided by [Open‑Meteo](https://open-meteo.com/).
-- Built with Python, `requests`, `pandas`, `matplotlib`, and `tkinter`.
+- Weather data provided by [Open-Meteo](https://open-meteo.com/).
+- Built with Python, `requests`, `pandas`, `numpy`, `matplotlib`, and `tkinter`.

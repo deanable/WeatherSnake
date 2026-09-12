@@ -4,5 +4,10 @@ __pycache__/
 *.csv
 *.png
 *.jpg
+weathersnake.log
+assets/logo.ico
+help/html/WeatherSnake.chm
+help/html/helpcompile.log
+help/html/*.chw
 
 !assets/logo.png

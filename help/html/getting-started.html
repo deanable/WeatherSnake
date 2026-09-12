@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="getting-started">
+<title>Getting Started — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Getting Started</h1>
+
+<p>Your first analysis takes less than a minute:</p>
+
+<ol>
+	<li><strong>Choose a location.</strong> Use the <em>Location</em> dropdown for the built-in
+	presets (Cape Town, Johannesburg, Durban), or pick <em>Custom…</em> and type any place name
+	the geocoder recognizes. See <a href="location.html">Choosing a Location</a>.</li>
+	<li><strong>Choose a period.</strong> Summer, Autumn, Winter, Spring, Full Year, a single
+	Month, or a Custom Range such as 15 Nov – 28 Feb.
+	See <a href="periods.html">Choosing a Period</a>.</li>
+	<li><strong>Choose a depth.</strong> How many past years to average: 1, 3, 5, 7, 10, 15,
+	or 20. See <a href="depth.html">Analysis Depth</a>.</li>
+	<li><strong>Press <em>Fetch Data</em>.</strong> WeatherSnake geocodes the location, downloads
+	the daily history, filters it to your window, and draws the chart. The table on the left
+	shows the averaged values; the summary below the chart shows conditions and extremes.</li>
+	<li><strong>Save or export.</strong> <em>Save to JPG</em> for the chart image,
+	<em>Export CSV</em> for the numbers, or <em>CSV + Infographic</em> to publish an infographic
+	(see <a href="exports.html">Exporting Data</a>).</li>
+</ol>
+
+<h2>Reading the chart</h2>
+<ul>
+	<li><strong>Red/orange lines</strong> (left axis) — average daily high and low for the window.</li>
+	<li><strong>Blue bars</strong> (right axis) — average precipitation for the window.</li>
+	<li>The x-axis lists months (when <em>Monthly Average</em> is ticked) or individual
+	day-of-year values.</li>
+</ul>
+
+<h2>Going deeper</h2>
+<ul>
+	<li>Tick <strong>Conditions &amp; Extremes</strong> for typical ranges, records, and the
+	wettest/driest years (<a href="insights.html">Conditions &amp; Extremes</a>).</li>
+	<li>Tick <strong>Yearly Breakdown</strong> for per-year values and trends
+	(<a href="yearly.html">Yearly Breakdown</a>).</li>
+	<li>Compare recent years against a longer baseline on the command line with
+	<span class="kbd">--compare-recent</span> (<a href="comparison.html">Recent vs Baseline</a>).</li>
+</ul>
+
+<div class="note"><strong>Where does the data come from?</strong> The Open-Meteo Archive — a
+reanalysis product blended from weather-station observations. It needs no API key, but an
+internet connection is required to fetch.</div>
+
+<footer class="nav-footer">
+	<a href="interface.html">Next: The WeatherSnake Window →</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

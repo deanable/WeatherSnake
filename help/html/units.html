@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="units">
+<title>Units — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Units</h1>
+
+<p>The <em>Units</em> selector chooses the measurement system for the whole analysis — chart
+axes, the data table, and every summary, including differences in the
+<a href="comparison.html">Recent vs Baseline</a> comparison.</p>
+
+<table>
+	<tr><th>Quantity</th><th>Metric</th><th>Imperial</th></tr>
+	<tr><td>Temperature</td><td>°C</td><td>°F</td></tr>
+	<tr><td>Precipitation</td><td>mm</td><td>inches</td></tr>
+</table>
+
+<h2>Conversions used</h2>
+<ul>
+	<li>°F = °C × 9/5 + 32</li>
+	<li>inches = mm ÷ 25.4</li>
+</ul>
+
+<h2>Where each unit applies</h2>
+<ul>
+	<li>Chart axes and legends.</li>
+	<li>The data table (right-click-free, values shown to one decimal).</li>
+	<li>Conditions &amp; Extremes: typical ranges, records, wettest/driest years, rain-day
+	threshold.</li>
+	<li>Yearly Breakdown and Recent vs Baseline, including the <strong>Change</strong> column.</li>
+	<li>CSV export — values are exported in the units selected at the time.</li>
+</ul>
+
+<div class="note"><strong>Min Precip (mm)</strong> is always entered in millimetres regardless
+of the units setting — see <a href="precipitation.html">Precipitation Threshold</a>.</div>
+
+<h2>Command line equivalent</h2>
+<pre>python weather_juice.py --city Johannesburg --period Winter --depth 10 --units imperial</pre>
+
+<footer class="nav-footer">
+	<a href="monthly.html">Next: Monthly Average &amp; Shared Y-Axis →</a> · <a href="depth.html">← Analysis Depth</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import sys
@@ -5,6 +6,8 @@ import pandas as pd
 import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.image import imread
+
+logger = logging.getLogger(__name__)
 
 
 def _asset_path():
@@ -20,24 +23,216 @@ def _safe_filename(name: str) -> str:
     """Sanitize a string for use in a filename."""
     return re.sub(r'[^\w\-]', '_', name)
 
-def print_summary(df: pd.DataFrame, city: str, period: str, units: str):
-    """Prints a summary table of the processed weather data to the console."""
-    temp_unit = "°F" if units == "imperial" else "°C"
-    precip_unit = "inch" if units == "imperial" else "mm"
 
-    print(f"\nWeather Summary for {city} ({period})")
-    print("-" * 60)
-    print(f"{'Date':<15} | {'Max Temp':<10} | {'Min Temp':<10} | {'Precipitation':<15}")
-    print("-" * 60)
+def temp_unit(units: str) -> str:
+    """Display unit for temperatures (°C or °F)."""
+    return "°F" if units == "imperial" else "°C"
+
+
+def precip_unit(units: str) -> str:
+    """Display unit for precipitation (inch or mm)."""
+    return "inch" if units == "imperial" else "mm"
+
+
+def _fmt_temp(celsius: float, units: str) -> str:
+    """Format a metric temperature for display, converting for imperial."""
+    if units == "imperial":
+        celsius = (celsius * 9 / 5) + 32
+    return f"{celsius:.1f}{temp_unit(units)}"
+
+
+def _fmt_temp_delta(delta_celsius: float, units: str) -> str:
+    """Format a temperature *difference*, converting for imperial."""
+    if units == "imperial":
+        delta_celsius = delta_celsius * 9 / 5
+    return f"{delta_celsius:+.1f}{temp_unit(units)}"
+
+
+def _fmt_precip(mm: float, units: str) -> str:
+    """Format a metric precipitation amount for display, converting for imperial."""
+    if units == "imperial":
+        mm = mm / 25.4
+    return f"{mm:.1f} {precip_unit(units)}"
+
+
+def _fmt_precip_delta(delta_mm: float, units: str) -> str:
+    """Format a precipitation *difference*, converting for imperial."""
+    if units == "imperial":
+        delta_mm = delta_mm / 25.4
+    return f"{delta_mm:+.1f} {precip_unit(units)}"
+
+
+def format_summary(df: pd.DataFrame, city: str, period: str, units: str) -> str:
+    """Build the plain summary table of the processed weather data."""
+    tu, pu = temp_unit(units), precip_unit(units)
+    lines = [
+        "",
+        f"Weather Summary for {city} ({period})",
+        "-" * 60,
+        f"{'Date':<15} | {'Max Temp':<10} | {'Min Temp':<10} | {'Precipitation':<15}",
+        "-" * 60,
+    ]
     for _, row in df.iterrows():
-        print(f"{row['date_label']:<15} | {row['temp_max']:<6.1f} {temp_unit} | {row['temp_min']:<6.1f} {temp_unit} | {row['precip_sum']:<6.1f} {precip_unit}")
-    print("-" * 60)
+        precip = row.get('precip_sum', row.get('precip_in', 0.0))
+        lines.append(
+            f"{row['date_label']:<15} | {row['temp_max']:<6.1f} {tu} | "
+            f"{row['temp_min']:<6.1f} {tu} | {precip:<6.1f} {pu}"
+        )
+    lines.append("-" * 60)
+    return "\n".join(lines)
+
+
+def print_summary(df: pd.DataFrame, city: str, period: str, units: str):
+    """Print the summary table of the processed weather data."""
+    print(format_summary(df, city, period, units))
+
+
+def format_conditions_summary(conditions: dict, units: str) -> str:
+    """Build the most-common-condition distribution text."""
+    lines = ["", "Weather Conditions (historical)", "-" * 60]
+    for _, row in conditions["conditions"].iterrows():
+        lines.append(f"  {row['condition']:<22} {int(row['days']):>5} days   {row['share'] * 100:>5.1f}%")
+    rain_pct = conditions["rainy_day_share"] * 100
+    lines.append("-" * 60)
+    lines.append(f"  Rain days (>=1 mm): {rain_pct:.1f}% of days")
+    return "\n".join(lines)
+
+
+def print_conditions_summary(conditions: dict, units: str):
+    """Print the most-common-condition distribution for the window."""
+    print(format_conditions_summary(conditions, units))
+
+
+def format_variability_summary(stats: dict, units: str) -> str:
+    """Build typical ranges, extremes, and precipitation variability text."""
+    tm, tn = stats["temp_max"], stats["temp_min"]
+    lines = [
+        "",
+        "Variability & Extremes",
+        "-" * 60,
+        f"  Typical daily high: {_fmt_temp(tm['mean'], units)} "
+        f"(range usually {_fmt_temp(tm['p05'], units)} to {_fmt_temp(tm['p95'], units)})",
+        f"  Typical daily low:  {_fmt_temp(tn['mean'], units)} "
+        f"(range usually {_fmt_temp(tn['p05'], units)} to {_fmt_temp(tn['p95'], units)})",
+        f"  Record low/high in window: {_fmt_temp(tn['min'], units)} / {_fmt_temp(tm['max'], units)}",
+        "",
+        f"  Mean season total precipitation: {_fmt_precip(stats['precip']['mean_year_total'], units)}",
+    ]
+    wet_year, wet_amt = stats["precip"]["wettest_year"]
+    dry_year, dry_amt = stats["precip"]["driest_year"]
+    lines.append(f"  Wettest year:  {wet_year} ({_fmt_precip(wet_amt, units)})")
+    lines.append(f"  Driest year:   {dry_year} ({_fmt_precip(dry_amt, units)})")
+    lines.append(f"  Years above average: {stats['precip']['years_above_mean']} of {stats['years_analyzed']}")
+    lines.append(f"  Rain days per year: {stats['rain_days']['mean_per_year']:.0f} avg "
+                 f"(max {stats['rain_days']['max_per_year']})")
+    return "\n".join(lines)
+
+
+def print_variability_summary(stats: dict, units: str):
+    """Print typical ranges, extremes, and precipitation variability."""
+    print(format_variability_summary(stats, units))
+
+
+def format_yoy_summary(yoy: dict, units: str) -> str:
+    """Build per-year window means and trend-per-decade text."""
+    table: pd.DataFrame = yoy["table"]
+    lines = [
+        "",
+        "Year-over-Year",
+        "-" * 60,
+        f"{'Year':<7} | {'Avg High':<12} | {'Avg Low':<12} | {'Precip Total':<14}",
+    ]
+    for _, row in table.iterrows():
+        lines.append(
+            f"{int(row['year']):<7} | {_fmt_temp(row['temp_max'], units):<12} | "
+            f"{_fmt_temp(row['temp_min'], units):<12} | {_fmt_precip(row['precip_total'], units):<14}"
+        )
+    lines.append("-" * 60)
+
+    def _trend_line(label, value):
+        if value is None:
+            return f"  {label}: not enough years"
+        direction = "up" if value > 0 else "down"
+        return f"  {label}: {value:+.2f} per decade ({direction})"
+
+    lines.append(_trend_line("Avg high trend", yoy["temp_max_trend"]))
+    lines.append(_trend_line("Avg low trend", yoy["temp_min_trend"]))
+    lines.append(_trend_line("Precip trend", yoy["precip_trend"]))
+    return "\n".join(lines)
+
+
+def print_yoy_summary(yoy: dict, units: str):
+    """Print per-year window means and a trend-per-decade estimate."""
+    print(format_yoy_summary(yoy, units))
+
+
+def format_depth_comparison(comparison: dict, units: str) -> str:
+    """Build recent-years vs baseline-years comparison text."""
+    r, b, d = comparison["recent"], comparison["baseline"], comparison["delta"]
+    recent_span = f"{comparison['recent_years'][0]}-{comparison['recent_years'][-1]}"
+    baseline_span = f"{comparison['baseline_years'][0]}-{comparison['baseline_years'][-1]}"
+    lines = [
+        "",
+        "Recent vs Baseline",
+        "-" * 60,
+        f"  {'Metric':<16} {'Recent':<18} {'Baseline':<18} {'Change':<14}",
+        f"  {'Avg high':<16} {_fmt_temp(r['temp_max'], units):<18} "
+        f"{_fmt_temp(b['temp_max'], units):<18} {_fmt_temp_delta(d['temp_max'], units)}",
+        f"  {'Avg low':<16} {_fmt_temp(r['temp_min'], units):<18} "
+        f"{_fmt_temp(b['temp_min'], units):<18} {_fmt_temp_delta(d['temp_min'], units)}",
+        f"  {'Precip total':<16} {_fmt_precip(r['precip_total'], units):<18} "
+        f"{_fmt_precip(b['precip_total'], units):<18} {_fmt_precip_delta(d['precip_total'], units)}",
+        "-" * 60,
+        f"  Recent window: {recent_span} | Baseline: {baseline_span}",
+    ]
+    return "\n".join(lines)
+
+
+def print_depth_comparison(comparison: dict, units: str):
+    """Print recent-years vs baseline-years comparison."""
+    print(format_depth_comparison(comparison, units))
+
+
+def build_insights_text(raw_data: dict, period: str, custom_start, custom_end, units: str,
+                        show_insights: bool = True, show_yearly: bool = False,
+                        precip_threshold: float = 0.0, max_years: int = None) -> str:
+    """Build the conditions/variability/yearly text for GUI display.
+
+    Best-effort: sections that fail are logged and skipped.
+    """
+    from conditions import compute_condition_distribution
+    from stats import compute_variability_stats, compute_year_over_year
+
+    sections = []
+    if show_insights:
+        try:
+            conditions = compute_condition_distribution(raw_data, period, custom_start, custom_end)
+            if conditions:
+                sections.append(format_conditions_summary(conditions, units))
+        except Exception:
+            logger.warning("Condition summary failed", exc_info=True)
+        try:
+            stats = compute_variability_stats(raw_data, period, custom_start, custom_end,
+                                              precip_threshold=precip_threshold, max_years=max_years)
+            sections.append(format_variability_summary(stats, units))
+        except Exception:
+            logger.warning("Variability summary failed", exc_info=True)
+    if show_yearly:
+        try:
+            yoy = compute_year_over_year(raw_data, period, custom_start, custom_end,
+                                         precip_threshold=precip_threshold, max_years=max_years)
+            sections.append(format_yoy_summary(yoy, units))
+        except Exception:
+            logger.warning("Year-over-year summary failed", exc_info=True)
+    return "\n".join(sections)
+
 
 def export_to_csv(df: pd.DataFrame, city: str, period: str):
     """Exports the processed data to a CSV file."""
     filename = f"weather_report_{_safe_filename(city)}_{_safe_filename(period)}.csv"
     df.to_csv(filename, index=False)
     print(f"Exported data to {filename}")
+    return filename
 
 def generate_visualizations(df: pd.DataFrame, city: str, period: str, units: str, monthly: bool, unify_scales: bool = True):
     """Generates and saves temperature and rainfall graphs as a PNG file."""
@@ -45,6 +240,7 @@ def generate_visualizations(df: pd.DataFrame, city: str, period: str, units: str
     filename = f"weather_plot_{_safe_filename(city)}_{_safe_filename(period)}.png"
     fig.savefig(filename)
     print(f"Saved visualization to {filename}")
+    return filename
 
 def create_visualization_figure(df: pd.DataFrame, city: str, period: str, units: str, monthly: bool, unify_scales: bool = True):
     """Creates a matplotlib Figure for the weather data (useful for UI embedding).
@@ -52,14 +248,14 @@ def create_visualization_figure(df: pd.DataFrame, city: str, period: str, units:
     Uses Figure() directly instead of plt.subplots() to avoid Tk event loop
     conflicts when called from a background thread.
     """
-    temp_unit = "°F" if units == "imperial" else "°C"
-    precip_unit = "inch" if units == "imperial" else "mm"
+    tu = temp_unit(units)
+    pu = precip_unit(units)
 
     fig = Figure(figsize=(10, 6))
     ax1 = fig.add_subplot(111)
 
     ax1.set_xlabel('Date' if not monthly else 'Month')
-    ax1.set_ylabel(f'Temperature ({temp_unit})', color='tab:red')
+    ax1.set_ylabel(f'Temperature ({tu})', color='tab:red')
     ax1.plot(df['date_label'], df['temp_max'], color='tab:red', label='Max Temp', marker='o')
     ax1.plot(df['date_label'], df['temp_min'], color='tab:orange', label='Min Temp', marker='x')
     ax1.tick_params(axis='y', labelcolor='tab:red')
@@ -70,7 +266,7 @@ def create_visualization_figure(df: pd.DataFrame, city: str, period: str, units:
         ax1.tick_params(axis='x', rotation=45)
 
     ax2 = ax1.twinx()
-    ax2.set_ylabel(f'Precipitation ({precip_unit})', color='tab:blue')
+    ax2.set_ylabel(f'Precipitation ({pu})', color='tab:blue')
     ax2.bar(df['date_label'], df['precip_sum'], color='tab:blue', alpha=0.3, label='Rainfall')
     ax2.tick_params(axis='y', labelcolor='tab:blue')
 

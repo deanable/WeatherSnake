@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="location">
+<title>Choosing a Location — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Choosing a Location</h1>
+
+<h2>Preset locations</h2>
+<p>The <em>Location</em> dropdown offers three built-in presets:</p>
+<ul>
+	<li>Cape Town</li>
+	<li>Johannesburg</li>
+	<li>Durban</li>
+</ul>
+<p>On the command line, list them with <span class="kbd">python weather_juice.py --list-presets</span>.</p>
+
+<h2>Custom locations</h2>
+<p>Choose <em>Custom…</em> and type any town, city, or region name. WeatherSnake sends the name
+to the Open-Meteo Geocoding API and uses the best match. If the name is ambiguous, the geocoder's
+top result wins — include the country or region for precision (for example
+<span class="kbd">Richmond, Virginia</span> or <span class="kbd">Richmond UK</span>).</p>
+
+<p>Press <span class="kbd">Escape</span> in the custom box to switch back to the preset list.</p>
+
+<div class="note"><strong>Not found?</strong> Check the spelling or try a nearby larger city —
+the archive data is gridded, so a larger neighbour gives nearly identical results. See
+<a href="troubleshooting.html">Troubleshooting</a>.</div>
+
+<h2>Command line equivalent</h2>
+<pre>python weather_juice.py --city "Cape Town" --period Winter --depth 10</pre>
+
+<footer class="nav-footer">
+	<a href="periods.html">Next: Choosing a Period →</a> · <a href="interface.html">← The Window</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

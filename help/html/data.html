@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="data">
+<title>Data Sources &amp; Accuracy — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Data Sources &amp; Accuracy</h1>
+
+<h2>Where the data comes from</h2>
+<p>WeatherSnake uses the free <a href="https://open-meteo.com/">Open-Meteo</a> Archive API,
+which serves the ERA5 and ERA5-Land reanalysis datasets produced by the Copernicus Climate
+Change Service (ECMWF). Reanalysis blends millions of historical observations from weather
+stations, ships, aircraft, and satellites into a physically consistent gridded record reaching
+back to 1940. No API key is required.</p>
+
+<h2>What that means for accuracy</h2>
+<ul>
+	<li><strong>It's a grid, not a gauge.</strong> Values represent roughly an 9–30 km cell
+	around your chosen coordinates. A specific backyard gauge can differ, but the grid is
+	excellent for averages and patterns.</li>
+	<li><strong>Recent days can be revised.</strong> The newest archive days (roughly the last
+	five) may update as late-arriving observations are folded in. For stable results, note that
+	yesterday's values may shift slightly on a later fetch.</li>
+	<li><strong>Averages are the sweet spot.</strong> Single-day extremes in reanalysis are
+	approximations of reality; multi-year averages — what WeatherSnake specializes in — are
+	very reliable.</li>
+</ul>
+
+<h2>How WeatherSnake processes it</h2>
+<ol>
+	<li>Geocodes the location (Open-Meteo Geocoding API).</li>
+	<li>Fetches daily <span class="kbd">temperature_2m_max</span>,
+	<span class="kbd">temperature_2m_min</span>, <span class="kbd">precipitation_sum</span>, and
+	<span class="kbd">weather_code</span> for the requested depth (cross-year windows fetch one
+	extra leading year so the earliest occurrence is complete).</li>
+	<li>Filters to the season or custom window, excludes February 29 everywhere.</li>
+	<li>Averages per month or day-of-year, applies the
+	<a href="precipitation.html">precipitation threshold</a>, computes condition distributions
+	(<a href="conditions.html">Weather Conditions</a>), variability and extremes
+	(<a href="insights.html">Conditions &amp; Extremes</a>), per-year trends
+	(<a href="yearly.html">Yearly Breakdown</a>), and comparisons
+	(<a href="comparison.html">Recent vs Baseline</a>).</li>
+	<li>Converts to imperial units only at display time.</li>
+</ol>
+
+<h2>Attribution</h2>
+<p>Weather data provided by <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0),
+built on Copernicus/ECMWF ERA5. If you publish charts or numbers produced with WeatherSnake,
+a credit line is appreciated.</p>
+
+<footer class="nav-footer">
+	<a href="troubleshooting.html">Next: Troubleshooting →</a> · <a href="cli.html">← CLI Reference</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

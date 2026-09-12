@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<meta name="GENERATOR" content="WeatherSnake help build">
+</head>
+<body>
+<object type="text/site properties">
+	<param name="Window Styles" value="0x800025">
+	<param name="ExWindow Styles" value="0x100">
+	<param name="Font" value="Segoe UI,8,0">
+</object>
+<ul>
+	<li><object type="text/sitemap">
+		<param name="Name" value="Welcome">
+		<param name="Local" value="welcome.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Name" value="Getting Started">
+		<param name="Local" value="getting-started.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Name" value="The WeatherSnake Window">
+		<param name="Local" value="interface.html">
+		</object>
+	<ul>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Choosing a Location">
+			<param name="Local" value="location.html">
+			</object>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Choosing a Period">
+			<param name="Local" value="periods.html">
+			</object>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Analysis Depth">
+			<param name="Local" value="depth.html">
+			</object>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Units">
+			<param name="Local" value="units.html">
+			</object>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Monthly Average &amp; Shared Y-Axis">
+			<param name="Local" value="monthly.html">
+			</object>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Precipitation Threshold">
+			<param name="Local" value="precipitation.html">
+			</object>
+	</ul>
+	<li><object type="text/sitemap">
+		<param name="Name" value="Analysing Weather Patterns">
+		</object>
+	<ul>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Weather Conditions">
+			<param name="Local" value="conditions.html">
+			</object>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Conditions &amp; Extremes">
+			<param name="Local" value="insights.html">
+			</object>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Yearly Breakdown">
+			<param name="Local" value="yearly.html">
+			</object>
+		<li><object type="text/sitemap">
+			<param name="Name" value="Recent vs Baseline">
+			<param name="Local" value="comparison.html">
+			</object>
+	</ul>
+	<li><object type="text/sitemap">
+		<param name="Name" value="Exporting Data">
+		<param name="Local" value="exports.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Name" value="Keyboard Shortcuts">
+		<param name="Local" value="keyboard.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Name" value="CLI Reference">
+		<param name="Local" value="cli.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Name" value="Data Sources &amp; Accuracy">
+		<param name="Local" value="data.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Name" value="Troubleshooting">
+		<param name="Local" value="troubleshooting.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Name" value="About WeatherSnake">
+		<param name="Local" value="about.html">
+		</object>
+</ul>
+</body>
+</html>

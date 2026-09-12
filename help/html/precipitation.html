@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="precipitation">
+<title>Precipitation Threshold — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Precipitation Threshold</h1>
+
+<p><strong>Min Precip (mm)</strong> sets a floor under which daily precipitation is treated as
+zero before averaging. It exists to exclude trace moisture — dew, frost, and drizzle remnants —
+that would otherwise keep a "dry" month from ever averaging to 0.</p>
+
+<h2>How to use it</h2>
+<ul>
+	<li><strong>0</strong> — no threshold; every drop counts (the default).</li>
+	<li><strong>1</strong> — a common choice; matches the "rain day" definition used in the
+	conditions summary (days with ≥ 1 mm).</li>
+	<li><strong>5</strong> — aggressive; only meaningful rain counts. Good for irrigation-style
+	"will it actually wet the soil" questions.</li>
+</ul>
+
+<p>The threshold is applied to the daily values <em>and</em> re-applied after averaging, so a
+mean built from a mix of zeros and small values can still be floored at the threshold.</p>
+
+<div class="warning"><strong>Units note:</strong> this value is always in
+<strong>millimetres</strong>, even when the rest of the analysis is displayed in imperial
+units.</div>
+
+<div class="tip"><strong>Related setting:</strong> the rain-day share in
+<a href="insights.html">Conditions &amp; Extremes</a> always uses the fixed 1 mm definition
+documented in <a href="conditions.html">Weather Conditions</a>.</div>
+
+<h2>Command line equivalent</h2>
+<pre>python weather_juice.py --city "Cape Town" --period Winter --depth 10 --precip-threshold 1.0</pre>
+
+<footer class="nav-footer">
+	<a href="insights.html">Next: Conditions &amp; Extremes →</a> · <a href="monthly.html">← Monthly Average &amp; Shared Y-Axis</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

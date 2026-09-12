@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<meta name="GENERATOR" content="WeatherSnake help build">
+</head>
+<body>
+<ul>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Averages">
+		<param name="Name" value="Getting Started">
+		<param name="Local" value="getting-started.html">
+		<param name="See also" value="Monthly Average;Variability">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="CHM help, using">
+		<param name="Name" value="Keyboard Shortcuts">
+		<param name="Local" value="keyboard.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="CSV export">
+		<param name="Name" value="Exporting Data">
+		<param name="Local" value="exports.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Custom location">
+		<param name="Name" value="Choosing a Location">
+		<param name="Local" value="location.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Custom range">
+		<param name="Name" value="Choosing a Period">
+		<param name="Local" value="periods.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Data source">
+		<param name="Name" value="Data Sources &amp; Accuracy">
+		<param name="Local" value="data.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Depth (years)">
+		<param name="Name" value="Analysis Depth">
+		<param name="Local" value="depth.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Errors, network">
+		<param name="Name" value="Troubleshooting">
+		<param name="Local" value="troubleshooting.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Exporting">
+		<param name="Name" value="Exporting Data">
+		<param name="Local" value="exports.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Extremes">
+		<param name="Name" value="Conditions &amp; Extremes">
+		<param name="Local" value="insights.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="F1 help">
+		<param name="Name" value="Keyboard Shortcuts">
+		<param name="Local" value="keyboard.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Imperial units">
+		<param name="Name" value="Units">
+		<param name="Local" value="units.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Infogr.am">
+		<param name="Name" value="Exporting Data">
+		<param name="Local" value="exports.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Keyboard shortcuts">
+		<param name="Name" value="Keyboard Shortcuts">
+		<param name="Local" value="keyboard.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Location">
+		<param name="Name" value="Choosing a Location">
+		<param name="Local" value="location.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Metric units">
+		<param name="Name" value="Units">
+		<param name="Local" value="units.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Monthly averages">
+		<param name="Name" value="Monthly Average &amp; Shared Y-Axis">
+		<param name="Local" value="monthly.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Open-Meteo">
+		<param name="Name" value="Data Sources &amp; Accuracy">
+		<param name="Local" value="data.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Periods and seasons">
+		<param name="Name" value="Choosing a Period">
+		<param name="Local" value="periods.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Precipitation threshold">
+		<param name="Name" value="Precipitation Threshold">
+		<param name="Local" value="precipitation.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Rain days">
+		<param name="Name" value="Weather Conditions">
+		<param name="Local" value="conditions.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Settings file">
+		<param name="Name" value="Troubleshooting">
+		<param name="Local" value="troubleshooting.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Shared Y-axis">
+		<param name="Name" value="Monthly Average &amp; Shared Y-Axis">
+		<param name="Local" value="monthly.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Trends, per decade">
+		<param name="Name" value="Yearly Breakdown">
+		<param name="Local" value="yearly.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Troubleshooting">
+		<param name="Name" value="Troubleshooting">
+		<param name="Local" value="troubleshooting.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Units">
+		<param name="Name" value="Units">
+		<param name="Local" value="units.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Variability">
+		<param name="Name" value="Conditions &amp; Extremes">
+		<param name="Local" value="insights.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Weather codes (WMO)">
+		<param name="Name" value="Weather Conditions">
+		<param name="Local" value="conditions.html">
+		</object>
+	<li><object type="text/sitemap">
+		<param name="Keyword" value="Yearly breakdown">
+		<param name="Name" value="Yearly Breakdown">
+		<param name="Local" value="yearly.html">
+		</object>
+</ul>
+</body>
+</html>

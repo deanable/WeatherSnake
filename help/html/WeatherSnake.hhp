@@ -1,0 +1,88 @@
+; WeatherSnake compiled help project.
+; Compiled by Microsoft HTML Help Workshop (hhc.exe) via build_chm.py.
+
+[OPTIONS]
+Auto Index=Yes
+Binary TOC=No
+Compatibility=1.1 or later
+Compiled file=WeatherSnake.chm
+Contents file=WeatherSnake.hhc
+Default Font=Segoe UI,8,0
+Default Window=main
+Display compile progress=Yes
+Error log file=helpcompile.log
+Full-text search=Yes
+Index file=WeatherSnake.hhk
+Language=0x409 English (United States)
+Title=WeatherSnake Help
+
+[WINDOWS]
+main="WeatherSnake Help","WeatherSnake.hhc","WeatherSnake.hhk","welcome.html","welcome.html",,,,,0x42520,180,180,760,560,0x1000,,,,,,0
+
+[FILES]
+styles.css
+welcome.html
+getting-started.html
+interface.html
+location.html
+periods.html
+depth.html
+units.html
+monthly.html
+precipitation.html
+conditions.html
+insights.html
+yearly.html
+comparison.html
+exports.html
+keyboard.html
+cli.html
+data.html
+troubleshooting.html
+about.html
+
+[ALIAS]
+IDH_WELCOME=welcome.html
+IDH_GETTING_STARTED=getting-started.html
+IDH_INTERFACE=interface.html
+IDH_LOCATION=location.html
+IDH_PERIODS=periods.html
+IDH_DEPTH=depth.html
+IDH_UNITS=units.html
+IDH_MONTHLY=monthly.html
+IDH_PRECIPITATION=precipitation.html
+IDH_CONDITIONS=conditions.html
+IDH_INSIGHTS=insights.html
+IDH_YEARLY=yearly.html
+IDH_COMPARISON=comparison.html
+IDH_EXPORTS=exports.html
+IDH_KEYBOARD=keyboard.html
+IDH_CLI=cli.html
+IDH_DATA=data.html
+IDH_TROUBLESHOOTING=troubleshooting.html
+IDH_ABOUT=about.html
+IDH_ERROR_NOTFOUND=troubleshooting.html
+IDH_ERROR_NODATA=troubleshooting.html
+
+[MAP]
+IDH_WELCOME=1000
+IDH_GETTING_STARTED=1001
+IDH_INTERFACE=1002
+IDH_LOCATION=1003
+IDH_PERIODS=1004
+IDH_DEPTH=1005
+IDH_UNITS=1006
+IDH_MONTHLY=1007
+IDH_PRECIPITATION=1008
+IDH_CONDITIONS=1009
+IDH_INSIGHTS=1010
+IDH_YEARLY=1011
+IDH_COMPARISON=1012
+IDH_EXPORTS=1013
+IDH_KEYBOARD=1014
+IDH_CLI=1015
+IDH_DATA=1016
+IDH_TROUBLESHOOTING=1017
+IDH_ABOUT=1018
+IDH_ERROR_NOTFOUND=1019
+IDH_ERROR_NODATA=1020

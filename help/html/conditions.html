@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="conditions">
+<title>Weather Conditions — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Weather Conditions</h1>
+
+<p>Temperature and precipitation totals don't tell the whole story. WeatherSnake also fetches
+the daily <strong>WMO weather code</strong> from Open-Meteo and translates it into
+plain-language conditions, then summarizes which conditions dominate your chosen window
+historically.</p>
+
+<h2>The condition distribution</h2>
+<p>Every run (and the GUI's <em>Conditions &amp; Extremes</em> panel) lists each condition
+category with the number of days and its share of the window, most common first:</p>
+
+<pre>Weather Conditions (historical)
+------------------------------------------------------------
+  Drizzle                  256 days    47.4%
+  Overcast                 126 days    23.3%
+  Rain                     123 days    22.8%
+  ...
+  Rain days (&gt;=1 mm): 45.2% of days</pre>
+
+<p>"Drizzle 47.4%" means: across every occurrence of this window in the analysis depth,
+47.4% of days were classified as drizzle. That is the answer to "what is this period usually
+<em>like</em>?" — not just how much rain fell.</p>
+
+<h2>Condition categories</h2>
+<p>Open-Meteo's weather codes are WMO interpretation codes. WeatherSnake groups them into these
+categories:</p>
+<table>
+	<tr><th>Category</th><th>Codes</th><th>Meaning</th></tr>
+	<tr><td>Clear sky</td><td>0</td><td>Cloudless</td></tr>
+	<tr><td>Mainly clear</td><td>1</td><td>Very light cloud</td></tr>
+	<tr><td>Partly cloudy</td><td>2</td><td>Broken cloud</td></tr>
+	<tr><td>Overcast</td><td>3</td><td>Full cover</td></tr>
+	<tr><td>Fog</td><td>45, 48</td><td>Fog and depositing rime fog</td></tr>
+	<tr><td>Drizzle</td><td>51–55</td><td>Light to dense drizzle</td></tr>
+	<tr><td>Freezing drizzle</td><td>56, 57</td><td>Drizzle at freezing temperatures</td></tr>
+	<tr><td>Rain</td><td>61–65</td><td>Slight to heavy rain</td></tr>
+	<tr><td>Freezing rain</td><td>66, 67</td><td>Rain at freezing temperatures</td></tr>
+	<tr><td>Snow</td><td>71–77</td><td>Snowfall and snow grains</td></tr>
+	<tr><td>Rain showers</td><td>80–82</td><td>Slight to violent showers</td></tr>
+	<tr><td>Snow showers</td><td>85, 86</td><td>Slight to heavy snow showers</td></tr>
+	<tr><td>Thunderstorm</td><td>95–99</td><td>Thunderstorm, with or without hail</td></tr>
+</table>
+
+<h2>Rain days</h2>
+<p>The line "Rain days (≥1 mm)" counts days with at least 1 mm of precipitation —
+a standard meteorological definition of a wet day. This is fixed and independent of the
+<a href="precipitation.html">precipitation threshold</a>.</p>
+
+<h2>Command line equivalent</h2>
+<pre>python weather_juice.py --city Durban --period Summer --depth 10
+# The conditions table prints by default; use --no-insights to skip it.</pre>
+
+<footer class="nav-footer">
+	<a href="insights.html">Next: Conditions &amp; Extremes →</a> · <a href="precipitation.html">← Precipitation Threshold</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

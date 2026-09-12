@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.13"]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: pip
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+        pip install -r requirements.txt
+
+    - name: Compile-check all modules
+      run: python -m py_compile weather_juice.py api_client.py processing.py output.py conditions.py stats.py logger_setup.py ui_app.pyw version.py build_chm.py help_launcher.py
+
+    - name: Validate help system
+      run: python build_chm.py
+
+    - name: Run tests
+      run: pytest test_processing.py test_insights.py test_help.py -q

@@ -88,7 +88,6 @@ class TestProcessWeatherData:
         # 25°C -> 77°F, 12.5°C -> 54.5°F
         assert abs(row["temp_max"] - 77.0) < 0.1
         assert abs(row["temp_min"] - 54.5) < 0.1
-        # 25.4mm / 25.4 = 1.0 inch (averaged: (25.4+0)/2 = 12.7mm -> 0.5 inch)
         assert abs(row["precip_sum"] - 0.5) < 0.1
 
     def test_metric_no_conversion(self):

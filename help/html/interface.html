@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="interface">
+<title>The WeatherSnake Window — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>The WeatherSnake Window</h1>
+
+<h2>Settings panel (top)</h2>
+<table>
+	<tr><th>Control</th><th>Purpose</th><th>More help</th></tr>
+	<tr><td><strong>Location</strong></td><td>Preset cities or <em>Custom…</em> for any place name.</td><td><a href="location.html">Choosing a Location</a></td></tr>
+	<tr><td><strong>Period</strong></td><td>Season, Full Year, Month, or Custom Range. Choosing <em>Month</em> or <em>Custom Range</em> reveals extra day/month selectors on a second row.</td><td><a href="periods.html">Choosing a Period</a></td></tr>
+	<tr><td><strong>Depth (Years)</strong></td><td>How many past years to analyze: 1, 3, 5, 7, 10, 15, or 20.</td><td><a href="depth.html">Analysis Depth</a></td></tr>
+	<tr><td><strong>Units</strong></td><td>Metric (°C, mm) or Imperial (°F, inches) — applies to the chart, table, and summaries.</td><td><a href="units.html">Units</a></td></tr>
+	<tr><td><strong>Monthly Average</strong></td><td>Average per month instead of per day-of-year.</td><td><a href="monthly.html">Monthly Average &amp; Shared Y-Axis</a></td></tr>
+	<tr><td><strong>Shared Y-Axis</strong></td><td>Use one Y range for temperature and precipitation bars.</td><td><a href="monthly.html">Monthly Average &amp; Shared Y-Axis</a></td></tr>
+	<tr><td><strong>Min Precip (mm)</strong></td><td>Zero out daily precipitation below this value to exclude dew and frost.</td><td><a href="precipitation.html">Precipitation Threshold</a></td></tr>
+	<tr><td><strong>Conditions &amp; Extremes</strong></td><td>Show the condition distribution and typical ranges/extremes under the chart.</td><td><a href="insights.html">Conditions &amp; Extremes</a></td></tr>
+	<tr><td><strong>Yearly Breakdown</strong></td><td>Show per-year averages/totals and trends under the chart.</td><td><a href="yearly.html">Yearly Breakdown</a></td></tr>
+	<tr><td><strong>Fetch Data</strong></td><td>Start (or restart) the analysis. The button is disabled while a fetch is running.</td><td><a href="troubleshooting.html">Troubleshooting</a></td></tr>
+</table>
+
+<h2>Export buttons</h2>
+<ul>
+	<li><strong>Save to JPG</strong> — saves the current chart (enabled after a successful fetch).</li>
+	<li><strong>Export CSV</strong> — writes the processed data table to a CSV file.</li>
+	<li><strong>CSV + Infographic</strong> — exports the CSV and creates an Infogr.am infographic.</li>
+	<li><strong>Infogr.am Key</strong> — stores your Infogr.am API key locally.</li>
+</ul>
+See <a href="exports.html">Exporting Data</a> for details on all three.
+
+<h2>Results area (bottom)</h2>
+<ul>
+	<li><strong>Left table</strong> — the averaged values: date label, max temp, min temp, and precipitation.</li>
+	<li><strong>Right chart</strong> — temperature lines and precipitation bars.</li>
+	<li><strong>Summary under the chart</strong> — the Conditions &amp; Extremes and/or Yearly Breakdown text you enabled, in a scrollable panel.</li>
+</ul>
+
+<h2>Help menu and F1</h2>
+<p>The <strong>Help</strong> menu opens this help file's contents, specific topics, and the
+About box. Press <span class="kbd">F1</span> at any time — with the mouse over a control (or
+just after using it with the keyboard) F1 opens the help topic for that specific control.</p>
+
+<h2>Your settings are remembered</h2>
+<p>Location, period, depth, units, toggles, threshold, and Infogr.am key are saved to
+<span class="kbd">ui_settings.json</span> after each successful fetch and reloaded at startup.
+In installed builds the file lives in your application-data folder
+(<span class="kbd">%APPDATA%\WeatherSnake</span> on Windows).</p>
+
+<footer class="nav-footer">
+	<a href="location.html">Next: Choosing a Location →</a> · <a href="getting-started.html">← Getting Started</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

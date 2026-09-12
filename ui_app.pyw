@@ -1,5 +1,6 @@
 import logging
 import re
+import sys
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import threading
@@ -12,13 +13,50 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from logger_setup import setup_logging
+from version import APP_NAME, VERSION
+from help_launcher import (
+    TOPIC_IDS, close_all, register_help, show_context_help, show_topic,
+)
 from api_client import get_coordinates, fetch_historical_weather
-from processing import process_weather_data, custom_range_days
-from output import create_visualization_figure, print_summary, export_to_csv, generate_visualizations
+from processing import process_weather_data, custom_range_days, get_season_months
+from output import create_visualization_figure, export_to_csv, build_insights_text
 
 logger = logging.getLogger(__name__)
 
-SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_settings.json")
+# Help context ids (values from help_launcher.TOPIC_IDS) for widgets.
+CTX = {
+    "root": TOPIC_IDS["welcome"],
+    "location": TOPIC_IDS["location"],
+    "period": TOPIC_IDS["periods"],
+    "depth": TOPIC_IDS["depth"],
+    "units": TOPIC_IDS["units"],
+    "monthly": TOPIC_IDS["monthly"],
+    "unify": TOPIC_IDS["monthly"],
+    "precip_threshold": TOPIC_IDS["precipitation"],
+    "insights": TOPIC_IDS["insights"],
+    "yearly": TOPIC_IDS["yearly"],
+    "fetch": TOPIC_IDS["getting-started"],
+    "save": TOPIC_IDS["exports"],
+    "export_csv": TOPIC_IDS["exports"],
+    "infographic": TOPIC_IDS["exports"],
+    "infogram_key": TOPIC_IDS["exports"],
+    "results": TOPIC_IDS["interface"],
+}
+
+def _settings_path() -> str:
+	"""Settings file location.
+
+	Frozen (PyInstaller) builds write to the user's application-data directory
+	so settings survive across runs and uninstalls cleanly; source runs keep
+	the file next to the source for easy inspection.
+	"""
+	if getattr(sys, "frozen", False):
+		base = os.environ.get("APPDATA") or os.path.expanduser("~")
+		return os.path.join(base, "WeatherSnake", "ui_settings.json")
+	return os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_settings.json")
+
+
+SETTINGS_FILE = _settings_path()
 
 
 class Tooltip:
@@ -54,13 +92,76 @@ class Tooltip:
 class WeatherJuiceApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Weather Juice v1.0")
+        self.root.title(f"{APP_NAME} v{VERSION}")
         self.root.geometry("1100x700")
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.create_widgets()
+        self.create_menu()
         self.load_settings()
         self.apply_settings()
+        self.root.bind("<F1>", self.on_f1)
+        self.root.bind("<Help>", self._help_event)
+        self.root.bind("<Control-F1>", lambda e: show_topic("welcome"))
+        self.root.bind("<Control-s>", lambda e: self.save_to_jpg())
+        self.root.bind("<Control-e>", lambda e: self.export_csv())
+        self.root.bind("<Control-r>", lambda e: self.fetch_data_thread())
+
+    # ----- Menu bar -----
+    def create_menu(self):
+        """Build the menu bar: File and Help."""
+        menubar = tk.Menu(self.root)
+
+        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Fetch Data", command=self.fetch_data_thread,
+                              accelerator="Ctrl+R")
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.on_closing)
+        menubar.add_cascade(label="File", menu=file_menu)
+
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="Help Topics", command=lambda: show_topic("welcome"),
+                              accelerator="F1")
+        help_menu.add_command(label="Getting Started", command=lambda: show_topic("getting-started"))
+        help_menu.add_command(label="Using the Window", command=lambda: show_topic("interface"))
+        help_menu.add_separator()
+        help_menu.add_command(label="CLI Reference", command=lambda: show_topic("cli"))
+        help_menu.add_command(label="Data Sources and Accuracy", command=lambda: show_topic("data"))
+        help_menu.add_separator()
+        help_menu.add_command(label="Troubleshooting", command=lambda: show_topic("troubleshooting"))
+        help_menu.add_command(label="Keyboard Shortcuts", command=lambda: show_topic("keyboard"))
+        help_menu.add_separator()
+        help_menu.add_command(label="About WeatherSnake", command=self.show_about)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        self.root.config(menu=menubar)
+        self._help_menu = help_menu
+
+    def show_about(self):
+        """Show the About dialog."""
+        messagebox.showinfo(
+            "About WeatherSnake",
+            f"{APP_NAME} v{VERSION}\n\n"
+            "A historical weather analyzer: multi-year averages, most-common conditions, "
+            "typical ranges and extremes, year-over-year trends, and recent-vs-baseline "
+            "comparisons.\n\n"
+            "Weather data provided by Open-Meteo (https://open-meteo.com/): "
+            "ERA5/ERA5-Land reanalysis, Copernicus/ECMWF, CC BY 4.0.\n\n"
+            "Released under the MIT License.",
+            parent=self.root,
+        )
+
+    # ----- F1 context-sensitive help -----
+    def on_f1(self, event=None):
+        """Open help for the focused widget (F1 anywhere in the app)."""
+        widget = self.root.focus_get()
+        if widget is None:
+            widget = self.root
+        return show_context_help(widget)
+
+    def _help_event(self, event):
+        """Tk <?> help-event handler; routes to the context help resolution."""
+        self.on_f1(event)
+        return "break"
 
     def create_widgets(self):
         # Top Frame for Inputs
@@ -97,7 +198,7 @@ class WeatherJuiceApp:
         self.depth_label = ttk.Label(input_frame, text="Depth (Years):")
         self.depth_label.grid(row=0, column=4, padx=5, pady=5, sticky=tk.W)
         self.depth_var = tk.IntVar(value=10)
-        self.depth_cb = ttk.Combobox(input_frame, textvariable=self.depth_var, values=["1", "5", "10", "20"], state="readonly", width=5)
+        self.depth_cb = ttk.Combobox(input_frame, textvariable=self.depth_var, values=["1", "3", "5", "7", "10", "15", "20"], state="readonly", width=5)
         self.depth_cb.grid(row=0, column=5, padx=5, pady=5, sticky=tk.W)
         self.create_tooltip(self.depth_cb, "Number of previous years to average (e.g., 10 = average of last 10 years).")
 
@@ -128,6 +229,20 @@ class WeatherJuiceApp:
         self.precip_threshold_spin.grid(row=2, column=1, padx=5, pady=2, sticky=tk.W)
         self.create_tooltip(self.precip_threshold_spin,
                             "Values below this threshold (mm) are treated as zero to exclude dew/frost.")
+
+        # Insights Checkbox
+        self.insights_var = tk.BooleanVar(value=True)
+        self.insights_chk = ttk.Checkbutton(input_frame, text="Conditions & Extremes", variable=self.insights_var)
+        self.insights_chk.grid(row=2, column=2, padx=10, pady=2, sticky=tk.W)
+        self.create_tooltip(self.insights_chk,
+                            "Show the most common weather conditions and typical ranges/extremes for the window.")
+
+        # Yearly Breakdown Checkbox
+        self.yearly_var = tk.BooleanVar(value=False)
+        self.yearly_chk = ttk.Checkbutton(input_frame, text="Yearly Breakdown", variable=self.yearly_var)
+        self.yearly_chk.grid(row=2, column=3, padx=10, pady=2, sticky=tk.W)
+        self.create_tooltip(self.yearly_chk,
+                            "Show per-year averages/totals and a trend-per-decade estimate.")
 
         # Fetch Button
         self.fetch_btn = ttk.Button(input_frame, text="Fetch Data", command=self.fetch_data_thread)
@@ -237,6 +352,33 @@ class WeatherJuiceApp:
         self.canvas_widget = None
         self.current_fig = None
 
+        # ----- Context-sensitive help registration (F1) -----
+        register_help(self.root, CTX["root"])
+        register_help(self.location_cb, CTX["location"])
+        register_help(self.custom_city_entry, CTX["location"])
+        register_help(self.period_cb, CTX["period"])
+        register_help(self.depth_cb, CTX["depth"])
+        register_help(self.units_cb, CTX["units"])
+        register_help(self.monthly_chk, CTX["monthly"])
+        register_help(self.unify_chk, CTX["unify"])
+        register_help(self.precip_threshold_spin, CTX["precip_threshold"])
+        register_help(self.insights_chk, CTX["insights"])
+        register_help(self.yearly_chk, CTX["yearly"])
+        register_help(self.fetch_btn, CTX["fetch"])
+        register_help(self.save_btn, CTX["save"])
+        register_help(self.export_csv_btn, CTX["export_csv"])
+        register_help(self.export_infographic_btn, CTX["infographic"])
+        register_help(self.set_api_key_btn, CTX["infogram_key"])
+        for w in self._custom_range_widgets:
+            register_help(w, CTX["period"])
+        for w in self._month_widgets:
+            register_help(w, CTX["period"])
+        register_help(self.tree, CTX["results"])
+        register_help(self.canvas_frame, CTX["results"])
+
+        # Insights panel (scrollable text under the chart)
+        self.insights_text = None
+
     # ----- Tooltip helper -----
     def create_tooltip(self, widget, text):
         return Tooltip(widget, text)
@@ -280,7 +422,7 @@ class WeatherJuiceApp:
             self._on_period_changed()
         # Depth
         depth = s.get("depth")
-        if depth in [1, 5, 10, 20]:
+        if depth in [1, 3, 5, 7, 10, 15, 20]:
             self.depth_var.set(depth)
         # Units
         units = s.get("units")
@@ -298,6 +440,13 @@ class WeatherJuiceApp:
         precip = s.get("precip_threshold")
         if isinstance(precip, (int, float)):
             self.precip_threshold_var.set(float(precip))
+        # Insights / yearly breakdown
+        insights = s.get("insights")
+        if isinstance(insights, bool):
+            self.insights_var.set(insights)
+        yearly = s.get("yearly")
+        if isinstance(yearly, bool):
+            self.yearly_var.set(yearly)
         # Custom range values
         if s.get("start_month") is not None:
             self._cr_start_month.set(list(self._month_to_num.keys())[s["start_month"]-1])
@@ -334,6 +483,9 @@ class WeatherJuiceApp:
         s["unify_scales"] = self.unify_var.get()
         # Precip threshold
         s["precip_threshold"] = self.precip_threshold_var.get()
+        # Insights / yearly breakdown
+        s["insights"] = self.insights_var.get()
+        s["yearly"] = self.yearly_var.get()
         # Custom range
         s["start_month"] = self._month_to_num.get(self._cr_start_month.get())
         s["start_day"] = int(self._cr_start_day.get()) if self._cr_start_day.get() else None
@@ -344,6 +496,7 @@ class WeatherJuiceApp:
         # Infogr.am API key
         s["infograma_key"] = getattr(self, "_infograma_key", "")
         try:
+            os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
             with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
                 json.dump(s, f, indent=2)
             logger.info("Saved UI settings to %s", SETTINGS_FILE)
@@ -353,6 +506,7 @@ class WeatherJuiceApp:
     def on_closing(self):
         """Handle window close event."""
         self.save_settings()
+        close_all()
         self.root.destroy()
 
     # ----- Event handlers -----
@@ -413,6 +567,12 @@ class WeatherJuiceApp:
         if self.canvas_widget:
             self.canvas_widget.get_tk_widget().destroy()
             self.canvas_widget = None
+        if self.insights_text is not None:
+            self.insights_text.destroy()
+            self.insights_text = None
+        if getattr(self, "_insights_scroll", None) is not None:
+            self._insights_scroll.destroy()
+            self._insights_scroll = None
         self.current_fig = None
 
         # Capture all widget values on the main thread for thread safety
@@ -424,6 +584,8 @@ class WeatherJuiceApp:
             "monthly": self.monthly_var.get(),
             "unify_scales": self.unify_var.get(),
             "precip_threshold": self.precip_threshold_var.get(),
+            "insights": self.insights_var.get(),
+            "yearly": self.yearly_var.get(),
         }
 
         if params["period"] == "Custom Range":
@@ -457,8 +619,16 @@ class WeatherJuiceApp:
             current_year = datetime.now().year
             end_year = current_year - 1
             start_year = end_year - depth + 1
-            # Fetch one extra year to cover cross-year seasons (e.g. Dec-Feb summer)
-            start_date = f"{start_year - 1}-01-01"
+            # Cross-year windows (e.g. Dec-Feb summer) need one extra leading
+            # year so the earliest occurrence includes its head month.
+            if period == "Custom Range":
+                extra_year = params["start_month"] > params["end_month"]
+            elif period == "Month":
+                extra_year = False
+            else:
+                wsm, wem = get_season_months(period)
+                extra_year = wsm > wem
+            start_date = f"{start_year - 1 if extra_year else start_year}-01-01"
             end_date = f"{end_year}-12-31"
 
             if period == "Custom Range":
@@ -497,13 +667,23 @@ class WeatherJuiceApp:
                 monthly = custom_range_days(custom_start[0], custom_start[1],
                                             custom_end[0], custom_end[1]) > 31
 
+            insights_text = ""
+            if params.get("insights") or params.get("yearly"):
+                insights_text = build_insights_text(
+                    raw_data, period, custom_start, custom_end, units,
+                    show_insights=params.get("insights", False),
+                    show_yearly=params.get("yearly", False),
+                    precip_threshold=precip_threshold,
+                    max_years=depth,
+                )
+
             fig = create_visualization_figure(processed_df, city, display_period, units, monthly, unify_scales)
 
             self._last_city = city
             self._last_period = display_period
             self._last_depth = depth
 
-            self.root.after(0, self.update_ui, processed_df, fig, units)
+            self.root.after(0, self.update_ui, processed_df, fig, units, insights_text)
 
         except Exception as e:
             logger.error("Error during data fetch/processing", exc_info=True)
@@ -515,7 +695,7 @@ class WeatherJuiceApp:
                 msg = f"No weather data found for '{city}' with the selected parameters. Try a different period or depth."
             self.root.after(0, self.show_error, msg)
 
-    def update_ui(self, df, fig, units):
+    def update_ui(self, df, fig, units, insights_text=""):
         self.current_fig = fig
         self._last_df = df
         # Update Treeview
@@ -534,6 +714,26 @@ class WeatherJuiceApp:
         self.canvas_widget = FigureCanvasTkAgg(self.current_fig, master=self.canvas_frame)
         self.canvas_widget.draw()
         self.canvas_widget.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        # Insights panel
+        if self.insights_text is not None:
+            self.insights_text.destroy()
+            self.insights_text = None
+        if getattr(self, "_insights_scroll", None) is not None:
+            self._insights_scroll.destroy()
+            self._insights_scroll = None
+        if insights_text:
+            self.insights_text = tk.Text(self.canvas_frame, height=12, wrap=tk.WORD,
+                                         state=tk.NORMAL, relief=tk.FLAT,
+                                         background="#f5f5f5")
+            self.insights_text.insert("1.0", insights_text)
+            self.insights_text.config(state=tk.DISABLED)
+            scroll = ttk.Scrollbar(self.canvas_frame, orient="vertical",
+                                   command=self.insights_text.yview)
+            self.insights_text.configure(yscrollcommand=scroll.set)
+            self.insights_text.pack(side=tk.TOP, fill=tk.BOTH, expand=False)
+            scroll.pack(side=tk.RIGHT, fill=tk.Y)
+            self._insights_scroll = scroll
 
         self.status_var.set("Ready.")
         self.fetch_btn.config(state="normal")

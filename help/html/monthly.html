@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="monthly">
+<title>Monthly Average &amp; Shared Y-Axis — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Monthly Average &amp; Shared Y-Axis</h1>
+
+<h2>Monthly Average</h2>
+<p>When ticked, the chart shows one averaged point per <strong>month</strong> of the window
+(for example: December, January, February). When unticked, it shows one averaged point per
+<strong>day-of-year</strong> (for example: 01-12, 01-13, …) — a much finer curve that makes
+short-lived spikes and shoulder-season shifts visible at the cost of a busier axis.</p>
+
+<ul>
+	<li><strong>Tick it</strong> for season overviews and clean multi-month comparisons.</li>
+	<li><strong>Untick it</strong> to hunt for specific dates — "how hot is 24 December,
+	typically?"</li>
+</ul>
+
+<div class="note">For <em>Month</em> and <em>Custom Range</em> periods the mode is chosen
+automatically: windows longer than 31 days use monthly averaging, shorter ones use
+day-of-year values, and the toggle is disabled.</div>
+
+<h2>Shared Y-Axis</h2>
+<p>By default the temperature lines and the precipitation bars each get their own Y scale.
+When <em>Shared Y-Axis</em> is ticked, both sides use the same range, which makes the two
+series visually comparable — handy when rainfall and temperature clearly move together
+(or in opposition) across the window.</p>
+
+<h2>Command line equivalent</h2>
+<pre>python weather_juice.py --city Durban --period Summer --depth 10 --monthly --unify-scales</pre>
+
+<footer class="nav-footer">
+	<a href="precipitation.html">Next: Precipitation Threshold →</a> · <a href="units.html">← Units</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

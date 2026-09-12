@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="troubleshooting">
+<title>Troubleshooting — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Troubleshooting</h1>
+
+<h2>"Could not find coordinates for …"</h2>
+<ul>
+	<li>Check the spelling, or try a nearby larger city — the geocoder needs a recognized name.</li>
+	<li>Add a region or country for ambiguous names (<span class="kbd">Richmond UK</span> vs
+	<span class="kbd">Richmond, Virginia</span>).</li>
+	<li>Check your internet connection; the geocoding request is online.</li>
+</ul>
+
+<h2>"No data available for the given timeframe"</h2>
+<ul>
+	<li>Confirm the <a href="depth.html">depth</a> and <a href="periods.html">period</a> combination
+	makes sense — a depth of 20 needs 20 complete occurrences of the window.</li>
+	<li>Very new settlements or remote islands may have limited archive coverage; try a nearby
+	larger location.</li>
+	<li>Try a different period to confirm the location itself returns data.</li>
+</ul>
+
+<h2>Requests are slow or fail part-way</h2>
+<ul>
+	<li>Depth-20 fetches download ~7,300 daily records — allow a few seconds.</li>
+	<li>Corporate proxies or firewalls can block the API; the archive lives at
+	<span class="kbd">archive-api.open-meteo.com</span> and the geocoder at
+	<span class="kbd">geocoding-api.open-meteo.com</span>.</li>
+	<li>Open-Meteo is a free service with fair-use limits; wait a moment and retry.</li>
+</ul>
+
+<h2>Infogr.am export fails</h2>
+<ul>
+	<li>Set the key via the <strong>Infogr.am Key</strong> button or the
+	<span class="kbd">INFOGRAM_API_KEY</span> environment variable
+	(see <a href="exports.html">Exporting Data</a>).</li>
+	<li>Check that your Infogr.am account/plan permits API access; the error dialog shows the
+	HTTP status returned.</li>
+</ul>
+
+<h2>The window looks wrong or blank</h2>
+<ul>
+	<li>Reopen the application — a failed fetch can leave the chart area empty; the status bar
+	(above the buttons) shows what's happening.</li>
+	<li>Settings persist in <span class="kbd">ui_settings.json</span>; if a bad setting breaks
+	startup, close the app and delete that file — it will be recreated with defaults.</li>
+</ul>
+
+<h2>Where are my files and settings?</h2>
+<table>
+	<tr><th>File</th><th>From source</th><th>Installed build</th></tr>
+	<tr><td>Settings</td><td>folder of the source, <span class="kbd">ui_settings.json</span></td><td><span class="kbd">%APPDATA%\WeatherSnake\ui_settings.json</span> (Windows) or <span class="kbd">~/WeatherSnake/</span></td></tr>
+	<tr><td>Log</td><td><span class="kbd">weathersnake.log</span> next to the source</td><td><span class="kbd">%APPDATA%\WeatherSnake\weathersnake.log</span> or <span class="kbd">~/WeatherSnake/</span></td></tr>
+	<tr><td>CSV / chart exports</td><td>current working directory</td><td>chosen via dialogs / working directory</td></tr>
+</table>
+
+<div class="tip">The log file records every fetch at debug level — it's the first place to look
+when reporting a problem.</div>
+
+<footer class="nav-footer">
+	<a href="about.html">Next: About →</a> · <a href="data.html">← Data Sources &amp; Accuracy</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="yearly">
+<title>Yearly Breakdown — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Yearly Breakdown</h1>
+
+<p>The <strong>Yearly Breakdown</strong> checkbox shows one row per year — the average high,
+average low, and total precipitation for each occurrence of the window — followed by a trend
+estimate per decade for each series.</p>
+
+<pre>Year-over-Year
+------------------------------------------------------------
+Year   | Avg High     | Avg Low      | Precip Total
+2021   | 25.5°C       | 17.9°C       | 288.0 mm
+2022   | 25.8°C       | 18.1°C       | 402.0 mm
+2023   | 25.6°C       | 18.0°C       | 356.0 mm
+2024   | 26.1°C       | 18.4°C       | 380.0 mm
+2025   | 26.3°C       | 18.5°C       | 371.0 mm
+------------------------------------------------------------
+  Avg high trend: +0.32 per decade (up)
+  Avg low trend: +0.21 per decade (up)
+  Precip trend: +18.5 per decade (up)</pre>
+
+<h2>How the trend is computed</h2>
+<p>A least-squares straight line through the per-year values, expressed per decade. For
+example, "+0.32 per decade" means the average high rose about 0.32° every ten years across the
+analyzed window. Only complete occurrences are counted, and cross-year windows (Dec–Feb) are
+labelled by the year they start.</p>
+
+<div class="warning"><strong>Read trends with care.</strong> Weather is noisy: a decade-scale
+trend from 5 years of data is barely a hint, while the same slope across 20 years is much more
+meaningful. Use <a href="comparison.html">Recent vs Baseline</a> to test whether a shift is
+concentrated in recent years, and prefer deeper <a href="depth.html">depths</a> before
+drawing conclusions.</div>
+
+<h2>Command line equivalent</h2>
+<pre>python weather_juice.py --city Durban --period Summer --depth 20 --yearly</pre>
+
+<footer class="nav-footer">
+	<a href="comparison.html">Next: Recent vs Baseline →</a> · <a href="insights.html">← Conditions &amp; Extremes</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="topic-id" content="exports">
+<title>Exporting Data — WeatherSnake Help</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+<nav class="top-nav"><a href="welcome.html">Home</a> · <a href="getting-started.html">Getting Started</a> · <a href="interface.html">The Window</a> · <a href="cli.html">CLI Reference</a> · <a href="troubleshooting.html">Troubleshooting</a></nav>
+
+<h1>Exporting Data</h1>
+
+<h2>Save to JPG</h2>
+<p>Saves the current chart as a JPEG image (300 dpi). The suggested filename encodes the
+depth, period, and location — for example
+<span class="kbd">10yr_Summer_Durban.jpg</span> — and you can change it in the save dialog.
+The button is enabled after a successful fetch. Use <span class="kbd">Ctrl+S</span> as a
+shortcut.</p>
+
+<h2>Export CSV</h2>
+<p>Writes the processed data table — the same rows shown in the left-hand tree — to a CSV file
+named <span class="kbd">weather_report_&lt;city&gt;_&lt;period&gt;.csv</span>. Values are in the
+<a href="units.html">units</a> selected when the data was fetched. Columns:</p>
+<ul>
+	<li><span class="kbd">date_label</span> — month name or day-of-year label.</li>
+	<li><span class="kbd">temp_max</span> / <span class="kbd">temp_min</span> — averaged highs and lows.</li>
+	<li><span class="kbd">precip_sum</span> — averaged precipitation.</li>
+</ul>
+<p>CSV files open cleanly in Excel, LibreOffice, R, or Python
+(<span class="kbd">pandas.read_csv</span>).</p>
+
+<h2>CSV + Infographic</h2>
+<p>Performs the CSV export and then creates an Infogr.am infographic from the same data:</p>
+<ol>
+	<li>Set your Infogr.am API key first via the <strong>Infogr.am Key</strong> button, or set
+	the <span class="kbd">INFOGRAM_API_KEY</span> environment variable.</li>
+	<li>Press <strong>CSV + Infographic</strong>. On success a dialog shows the link to the
+	created infographic.</li>
+</ol>
+
+<div class="warning"><strong>API key required.</strong> The Infogr.am REST API needs a paid/key
+account; the key is stored locally in
+<span class="kbd">ui_settings.json</span>. Without it, the CSV is still exported and you'll be
+prompted for the key.</div>
+
+<h2>Command line exports</h2>
+<p>Every CLI run automatically writes both files next to the working directory:</p>
+<pre>weather_report_&lt;city&gt;_&lt;period&gt;.csv
+weather_plot_&lt;city&gt;_&lt;period&gt;.png</pre>
+
+<footer class="nav-footer">
+	<a href="keyboard.html">Next: Keyboard Shortcuts →</a> · <a href="comparison.html">← Recent vs Baseline</a> · <a href="welcome.html">Help Home</a>
+</footer>
+</body>
+</html>
