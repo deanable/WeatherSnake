@@ -126,14 +126,26 @@ jobs:
         pyinstaller --onefile --clean --windowed --name WeatherSnake --add-data "assets:assets" --add-data "help/html:help/html" ui_app.pyw
 
     # ----- Windows packaging: Inno Setup installer + portable zip -----
+    # Runs in pwsh: Git Bash mangles ISCC's /O switch and $(pwd) into a POSIX
+    # path the Windows-native compiler cannot parse ("Unknown option: //O...").
     - name: Build Windows installer (Inno Setup)
       if: runner.os == 'Windows'
-      shell: bash
+      shell: pwsh
       run: |
-        ISCC=$(ls "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" 2>/dev/null || ls "/c/Program Files/Inno Setup 6/ISCC.exe" 2>/dev/null)
-        # /O pins the output dir to the working dir regardless of script location
-        "$ISCC" //DAppVersion="${{ env.VERSION }}" //O"$(pwd)/packaging/installer" packaging/installers.iss
-        mv packaging/installer/WeatherSnake-*.exe dist/
+        $candidates = @(
+          "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+          "${env:ProgramFiles}\Inno Setup 6\ISCC.exe",
+          "${env:ProgramW6432}\Inno Setup 6\ISCC.exe"
+        )
+        $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if (-not $iscc) { throw "ISCC.exe not found - Inno Setup 6 is missing on the runner" }
+        $outDir = Join-Path (Get-Location).Path "packaging\installer"
+        & $iscc "/DAppVersion=$env:VERSION" "/O$outDir" "packaging\installers.iss"
+        if ($LASTEXITCODE -ne 0) { throw "ISCC exited with $LASTEXITCODE" }
+        Get-ChildItem $outDir
+        Move-Item -Force (Join-Path $outDir "WeatherSnake-*.exe") dist\
+        if (-not (Test-Path "dist\WeatherSnake-$env:VERSION-windows-setup.exe")) { throw "Windows installer missing after ISCC build" }
+        Write-Host "Installer built: dist\WeatherSnake-$env:VERSION-windows-setup.exe"
 
     - name: Zip portable binaries (Windows)
       if: runner.os == 'Windows'
