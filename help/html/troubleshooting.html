@@ -39,11 +39,11 @@
 
 <h2>Infogram export fails</h2>
 <ul>
-	<li>Infogram needs a <strong>single API token</strong> and a <strong>template project ID</strong>.
+	<li>Infogram needs a <strong>single API token</strong> and a <strong>template project</strong>.
 	The token comes from your Infogram account settings (API section); the template is one of your
-	projects containing a text block and a table chart — copy its project ID from the project
-	card's context menu. Enter both via the <strong>Infogram Token</strong> button, or set the
-	<span class="kbd">INFOGRAM_API_TOKEN</span> and <span class="kbd">INFOGRAM_TEMPLATE_ID</span>
+	projects containing a text block and a table chart. Click <strong>Infogram Token</strong> and
+	WeatherSnake lists your projects so you can pick the template (or paste its ID manually), or set
+	the <span class="kbd">INFOGRAM_API_TOKEN</span> and <span class="kbd">INFOGRAM_TEMPLATE_ID</span>
 	environment variables (see <a href="exports.html">Exporting Data</a>).</li>
 	<li>The button verifies your credentials against the API when you save them — if Infogram
 	rejects them you'll see the server's own explanation in the dialog.</li>

@@ -122,7 +122,7 @@ Run `ui_app.pyw` (or the packaged executable). The GUI offers the same engine pl
 - **Yearly Breakdown** panel: per-year averages/totals and trends.
 - Monthly-Average and Shared-Y-Axis toggles, precipitation threshold.
 - **Help menu** (Help Topics, Getting Started, Using the Window, CLI Reference, Data Sources, Troubleshooting, Keyboard Shortcuts, About) and **context-sensitive F1**: hover or focus any control and press F1 to open the matching topic in the compiled help. `Ctrl+F1` opens the contents; `Ctrl+R` fetches, `Ctrl+S` saves the chart, `Ctrl+E` exports CSV.
-- **Save to JPG**, **Export CSV**, and **CSV + Infographic** (Infogram; enter your API **token** and a **template project ID** via the *Infogram Token* button, or set the `INFOGRAM_API_TOKEN` / `INFOGRAM_TEMPLATE_ID` environment variables — the app copies the template, fills it with your data via the current `api.infogram.com` REST API, and publishes it, all in the background with clear success/error dialogs).
+- **Save to JPG**, **Export CSV**, and **CSV + Infographic** (Infogram; enter your API **token** and pick a **template project** from your account via the *Infogram Token* button, or set the `INFOGRAM_API_TOKEN` / `INFOGRAM_TEMPLATE_ID` environment variables — the app copies the template, fills it with your data via the current `api.infogram.com` REST API, and publishes it, all in the background with clear success/error dialogs).
 
 Settings persist between sessions in `ui_settings.json`.
 

@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import infogram_client  # noqa: E402
 from infogram_client import (  # noqa: E402
     InfogramError, chart_data, title_text, check_credentials, create_infographic,
-    _find_entities,
+    list_projects, _find_entities,
 )
 
 
@@ -254,6 +254,47 @@ def test_network_error_maps_to_connectivity_message(monkeypatch):
     with pytest.raises(InfogramError) as excinfo:
         create_infographic(_df(), "X", "Y", "metric", "TOKEN", "TPL")
     assert "Could not reach Infogram" in str(excinfo.value)
+
+
+# ---------------------------------------------------------------------------
+# Project listing
+# ---------------------------------------------------------------------------
+def test_list_projects_parses_documented_shape(monkeypatch):
+    body = [
+        {"title": "Template", "projectId": "aaaa-bbbb",
+         "createdAt": "2024-01-01T00:00:00.000Z", "state": "draft",
+         "modifiedAt": "2024-06-01T10:00:00.000Z",
+         "thumbnailUrl": "https://x/thumb.jpg", "author": {"name": "U"}},
+        {"title": "Published", "projectId": "cccc-dddd", "state": "public",
+         "webUrl": "https://infogram.com/xyz"},
+        {"projectId": "eeee-ffff"},  # untitled draft
+        "not-a-dict",
+    ]
+    monkeypatch.setattr(infogram_client.requests, "get",
+                        lambda *a, **k: _FakeResponse(200, body))
+    projects = list_projects("TOKEN")
+    assert [p["projectId"] for p in projects] == ["aaaa-bbbb", "cccc-dddd", "eeee-ffff"]
+    assert projects[0]["title"] == "Template"
+    assert projects[0]["state"] == "draft"
+    assert projects[0]["modifiedAt"] == "2024-06-01T10:00:00.000Z"
+    assert projects[2]["title"] == "(untitled)"
+    assert projects[2]["state"] == "draft"
+
+
+def test_list_projects_empty_and_malformed(monkeypatch):
+    monkeypatch.setattr(infogram_client.requests, "get",
+                        lambda *a, **k: _FakeResponse(200, []))
+    assert list_projects("TOKEN") == []
+    monkeypatch.setattr(infogram_client.requests, "get",
+                        lambda *a, **k: _FakeResponse(200, {"unexpected": True}))
+    assert list_projects("TOKEN") == []
+
+
+def test_list_projects_error_propagates(monkeypatch):
+    monkeypatch.setattr(infogram_client.requests, "get",
+                        lambda *a, **k: _FakeResponse(401, text="bad"))
+    with pytest.raises(InfogramError):
+        list_projects("TOKEN")
 
 
 # ---------------------------------------------------------------------------

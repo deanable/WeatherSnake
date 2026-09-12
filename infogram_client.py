@@ -137,6 +137,30 @@ def title_text(city: str, period: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Project listing (for template picking)
+# ---------------------------------------------------------------------------
+def list_projects(token: str) -> List[Dict[str, str]]:
+    """List the account's projects (private library) for template selection.
+
+    Returns [{projectId, title, state, modifiedAt}, ...]; newest first is
+    the API's ordering.
+    """
+    body = _get("getProjectList", {}, token)
+    projects: List[Dict[str, str]] = []
+    if isinstance(body, list):
+        for item in body:
+            if isinstance(item, dict) and item.get("projectId"):
+                projects.append({
+                    "projectId": str(item["projectId"]),
+                    "title": str(item.get("title") or "(untitled)"),
+                    "state": str(item.get("state") or "draft"),
+                    "modifiedAt": str(item.get("modifiedAt") or ""),
+                })
+    logger.debug("Infogram project list: %d project(s)", len(projects))
+    return projects
+
+
+# ---------------------------------------------------------------------------
 # Credential check
 # ---------------------------------------------------------------------------
 def check_credentials(token: str, template_id: str = "") -> Optional[str]:

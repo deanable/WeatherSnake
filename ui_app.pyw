@@ -90,6 +90,72 @@ class Tooltip:
             tw.destroy()
 
 
+class TemplatePickerDialog:
+    """Modal dialog listing the account's Infogram projects for template choice."""
+
+    def __init__(self, parent, projects):
+        self.result = None
+        self.root = top = tk.Toplevel(parent)
+        top.title("Choose Infogram Template")
+        top.transient(parent)
+        top.grab_set()
+        top.resizable(True, True)
+
+        ttk.Label(top, text=(
+            "Pick the project WeatherSnake should use as its template.\n"
+            "It needs a text block (title) and a table chart (data)."
+        )).pack(anchor=tk.W, padx=12, pady=(12, 6))
+
+        columns = ("title", "state", "modified")
+        self.tree = ttk.Treeview(top, columns=columns, show="headings", height=12)
+        self.tree.heading("title", text="Project")
+        self.tree.heading("state", text="State")
+        self.tree.heading("modified", text="Modified")
+        self.tree.column("title", width=320)
+        self.tree.column("state", width=90, anchor=tk.CENTER)
+        self.tree.column("modified", width=160, anchor=tk.CENTER)
+        for p in projects:
+            self.tree.insert("", tk.END, iid=p["projectId"], values=(
+                p["title"], p["state"], p["modifiedAt"]))
+        self.tree.pack(fill=tk.BOTH, expand=True, padx=12, pady=6)
+
+        button_row = ttk.Frame(top)
+        button_row.pack(fill=tk.X, padx=12, pady=(0, 12))
+        select_btn = ttk.Button(button_row, text="Use Selected", command=self._use_selected)
+        select_btn.pack(side=tk.RIGHT, padx=(6, 0))
+        ttk.Button(button_row, text="Cancel", command=top.destroy).pack(side=tk.RIGHT)
+        ttk.Button(button_row, text="Enter ID manually…",
+                   command=self._manual).pack(side=tk.LEFT)
+
+        self.tree.bind("<Double-1>", lambda e: self._use_selected())
+        self.tree.bind("<Return>", lambda e: self._use_selected())
+        self.tree.focus_set()
+        if self.tree.get_children():
+            first = self.tree.get_children()[0]
+            self.tree.selection_set(first)
+            self.tree.focus(first)
+
+        top.update_idletasks()
+        px, py = parent.winfo_rootx(), parent.winfo_rooty()
+        top.wm_geometry(f"+{px + 60}+{py + 60}")
+        top.protocol("WM_DELETE_WINDOW", top.destroy)
+        top.wait_window()
+
+    def _use_selected(self):
+        selection = self.tree.selection()
+        if not selection:
+            messagebox.showwarning("Choose Infogram Template",
+                                   "Select a project first.", parent=self.root)
+            return
+        self.result = selection[0]
+        self.root.destroy()
+
+    def _manual(self):
+        """Close the picker and fall through to manual ID entry."""
+        self.manual_requested = True
+        self.root.destroy()
+
+
 class WeatherJuiceApp:
     def __init__(self, root):
         self.root = root
@@ -774,13 +840,67 @@ class WeatherJuiceApp:
 
     # ----- Infogram Integration -----
     def set_infogram_credentials(self):
-        """Prompt for the Infogram API token and template project ID, then verify."""
+        """Prompt for the Infogram API token, then pick the template project."""
         token = simpledialog.askstring(
             "Infogram API Token",
             "Enter your Infogram API token\n(infogram.com, account settings, API):",
             initialvalue=getattr(self, "_infograma_key", ""), show="*", parent=self.root)
         if token is None:
             return
+        token = token.strip()
+        if not token:
+            messagebox.showwarning("Infogram Token", "The token cannot be empty.",
+                                   parent=self.root)
+            return
+        # The project list comes from the network; fetch it off the UI thread.
+        self.status_var.set("Fetching your Infogram projects...")
+        threading.Thread(target=self._infogram_template_worker, args=(token,),
+                         daemon=True).start()
+
+    def _infogram_template_worker(self, token):
+        """Background fetch of the project list for template selection."""
+        from infogram_client import InfogramError, list_projects
+        try:
+            projects = list_projects(token)
+        except InfogramError as e:
+            logger.error("Infogram project list failed: %s", e)
+            self.root.after(0, self._infogram_template_failed, token, str(e))
+            return
+        self.root.after(0, self._infogram_template_pick, token, projects)
+
+    def _infogram_template_failed(self, token, message):
+        """The list fetch failed (usually a bad token); offer manual entry."""
+        self.status_var.set("Ready.")
+        if not messagebox.askyesno(
+                "Infogram Token",
+                f"Could not fetch your Infogram projects:\n\n{message}\n\n"
+                "Do you want to enter the template project ID manually instead?",
+                parent=self.root):
+            return
+        self._ask_template_id(token)
+
+    def _infogram_template_pick(self, token, projects):
+        """Show the template picker, or explain when the account is empty."""
+        self.status_var.set("Ready.")
+        if not projects:
+            messagebox.showinfo(
+                "Infogram Token",
+                "The token works, but this Infogram account has no projects yet.\n\n"
+                "Create a template in Infogram first: a project containing a text "
+                "block (for the title) and a table chart (for the data). Then press "
+                "Infogram Token again to pick it.",
+                parent=self.root)
+            return
+        dialog = TemplatePickerDialog(self.root, projects)
+        chosen = dialog.result
+        if chosen is None:
+            if getattr(dialog, "manual_requested", False):
+                self._ask_template_id(token)
+            return
+        self._save_infogram_credentials(token, chosen)
+
+    def _ask_template_id(self, token):
+        """Manual fallback: paste a template project ID directly."""
         template = simpledialog.askstring(
             "Infogram Template Project ID",
             "Enter the project ID of your Infogram template\n"
@@ -788,13 +908,15 @@ class WeatherJuiceApp:
             "The template needs a text block and a table chart; WeatherSnake\n"
             "copies it and fills in your weather data.",
             initialvalue=getattr(self, "_infograma_template", ""), parent=self.root)
-        if template is None:
+        if template is None or not template.strip():
             return
-        self._infograma_key = token.strip()
-        self._infograma_template = template.strip()
-        self.save_settings()
+        self._save_infogram_credentials(token, template.strip())
 
-        # Verify in the background so a slow network never freezes the window.
+    def _save_infogram_credentials(self, token, template):
+        """Store the credentials and verify them against the API in the background."""
+        self._infograma_key = token
+        self._infograma_template = template
+        self.save_settings()
         self.status_var.set("Verifying Infogram credentials...")
         threading.Thread(target=self._verify_infogram_credentials,
                          args=(self._infograma_key, self._infograma_template),
