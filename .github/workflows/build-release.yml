@@ -240,6 +240,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+      id-token: write  # required by cosign keyless signing (Sigstore OIDC)
     steps:
     - uses: actions/checkout@v4
 
@@ -249,11 +252,51 @@ jobs:
         path: dist-all
         merge-multiple: true
 
+    - name: Install cosign
+      uses: sigstore/cosign-installer@v3
+
+    - name: Generate SHA256SUMS manifest
+      run: |
+        cd dist-all
+        sha256sum WeatherSnake-* weathersnake_* > SHA256SUMS.txt
+
+    # Keyless signing: each artifact is signed with the workflow's ephemeral
+    # OIDC identity; signature (.sig) and certificate (.pem) are published
+    # next to the binaries on the release.
+    - name: Sign release artifacts
+      env:
+        COSIGN_YES: "true"
+      run: |
+        cd dist-all
+        for f in $(awk '{print $2}' SHA256SUMS.txt) SHA256SUMS.txt; do
+          echo "Signing $f"
+          cosign sign-blob \
+            --output-signature "${f}.sig" \
+            --output-certificate "${f}.pem" \
+            "$f"
+        done
+
+    # Self-check: prove the signatures verify against this workflow's
+    # identity before publishing them.
+    - name: Verify signatures
+      run: |
+        cd dist-all
+        for f in $(awk '{print $2}' SHA256SUMS.txt) SHA256SUMS.txt; do
+          echo "Verifying $f"
+          cosign verify-blob \
+            --certificate "${f}.pem" \
+            --signature "${f}.sig" \
+            --certificate-identity-regexp '^https://github.com/deanable/WeatherSnake/\.github/workflows/build-release\.yml@refs/tags/v.+$' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "$f"
+        done
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
           dist-all/WeatherSnake-*
           dist-all/weathersnake_*
+          dist-all/SHA256SUMS.txt
         generate_release_notes: true
         fail_on_unmatched_files: true

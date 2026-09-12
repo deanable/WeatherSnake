@@ -3,6 +3,11 @@
 All notable changes to WeatherSnake are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Sigstore signing of release artifacts**: the release job installs cosign (`sigstore/cosign-installer@v3`), generates a `SHA256SUMS.txt` manifest, and keylessly signs every installer/archive plus the manifest with the workflow's ephemeral OIDC identity. `.sig` and `.pem` certificate files are published next to the binaries on the GitHub Release, after an in-workflow verification pass against `https://github.com/deanable/WeatherSnake/.github/workflows/build-release.yml@refs/tags/v*`. Verify a download with `cosign verify-blob --certificate <file>.pem --signature <file>.sig --certificate-identity-regexp '^https://github.com/deanable/WeatherSnake/\.github/workflows/build-release\.yml@refs/tags/v.+$' --certificate-oidc-issuer https://token.actions.githubusercontent.com <file>`.
+
 ## [1.1.0] - 2026-09-12
 
 ### Added
