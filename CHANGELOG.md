@@ -3,6 +3,28 @@
 All notable changes to WeatherSnake are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## [1.3.0] - 2026-09-12
+
+### Added
+- **Datawrapper chart publishing**: the new *CSV + Online Chart* button exports the CSV and
+  publishes an interactive Datawrapper chart via the v3 API (`POST /v3/charts` →
+  `PUT /v3/charts/{id}/data` → `PATCH /v3/charts/{id}` → `POST /v3/charts/{id}/publish`) with a
+  single free API token (`datawrapper_client.py`). Series are labelled (max/min temperature,
+  precipitation) and the chart is published to a public share URL; errors (rejected token,
+  exhausted free-tier quota, 5xx, network) map to user-presentable dialogs.
+- **QuickChart PNG rendering**: the new *QuickChart PNG* button renders the current data as a
+  chart image via quickchart.io — no account, no API key. Mirrors the in-app figure
+  (temperature lines + precipitation bars on dual axes); free tier 1,000 charts/month, and the
+  open-source service can be self-hosted (`quickchart_client.py`).
+- The *Datawrapper Token* button stores and live-verifies the token
+  (`DATAWRAPPER_ACCESS_TOKEN` environment variable also honoured).
+
+### Removed
+- **The Infogram integration** (client, template picker dialog, *CSV + Infographic* and
+  *Infogram Token* buttons, settings keys, tests, help topics, and docs). Infogram's
+  template-copy workflow was fragile in practice; Datawrapper covers the shareable-chart need
+  with a cleaner create-from-scratch API and QuickChart covers zero-setup image export.
+
 ## [1.2.0] - 2026-09-12
 
 ### Added

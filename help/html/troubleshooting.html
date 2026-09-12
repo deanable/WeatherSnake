@@ -37,25 +37,26 @@
 	<li>Open-Meteo is a free service with fair-use limits; wait a moment and retry.</li>
 </ul>
 
-<h2>Infogram export fails</h2>
+<h2>Online chart export fails</h2>
 <ul>
-	<li>Infogram needs a <strong>single API token</strong> and a <strong>template project</strong>.
-	The token comes from your Infogram account settings (API section); the template is one of your
-	projects containing a text block and a table chart. Click <strong>Infogram Token</strong> and
-	WeatherSnake lists your projects so you can pick the template (or paste its ID manually), or set
-	the <span class="kbd">INFOGRAM_API_TOKEN</span> and <span class="kbd">INFOGRAM_TEMPLATE_ID</span>
-	environment variables (see <a href="exports.html">Exporting Data</a>).</li>
-	<li>The button verifies your credentials against the API when you save them — if Infogram
-	rejects them you'll see the server's own explanation in the dialog.</li>
-	<li>"HTTP 401/403" in the error dialog almost always means the token is wrong, expired, or
-	lacks the needed permissions (create/edit/publish).</li>
-	<li>"HTTP 404" means the template project ID doesn't match any project on the token's account
-	(or team) — re-copy the ID from the project card.</li>
-	<li>"The template has no chart block" means the template project needs a table chart to hold
-	the data — add one and retry.</li>
-	<li>"HTTP 5xx" means Infogram's service is having problems — wait a moment and retry.</li>
-	<li>"Could not reach Infogram" means the network request itself failed; check your
-	connection and any proxy/firewall for <span class="kbd">api.infogram.com</span>.</li>
+	<li><strong>Datawrapper</strong> needs a <strong>free API token</strong> from
+	app.datawrapper.de (<em>Settings &amp; Account → API tokens</em>). Click
+	<strong>Datawrapper Token</strong> to enter it, or set the
+	<span class="kbd">DATAWRAPPER_ACCESS_TOKEN</span> environment variable
+	(see <a href="exports.html">Exporting Data</a>).</li>
+	<li>The button verifies the token against the API when you save it — if Datawrapper
+	rejects it you'll see the server's own explanation in the dialog.</li>
+	<li>"HTTP 401/403" almost always means the token is wrong, expired, or was deleted —
+	create a fresh one and save it again.</li>
+	<li>"HTTP 429" / a mention of <em>quota</em> means the free tier's monthly limit was reached
+	(500 chart creations and 1,000 publishes per month) — wait for the next month or upgrade
+	the Datawrapper plan.</li>
+	<li>"HTTP 5xx" means the service is having problems — wait a moment and retry.</li>
+	<li>"Could not reach Datawrapper" / "Could not reach QuickChart" means the network request
+	itself failed; check your connection and any proxy/firewall for
+	<span class="kbd">api.datawrapper.de</span> or <span class="kbd">quickchart.io</span>.</li>
+	<li><strong>QuickChart PNG</strong> needs no account; the only common failure is its
+	per-minute rate limit (60 charts/minute on the free tier) — wait a minute and retry.</li>
 </ul>
 
 <h2>The window looks wrong or blank</h2>

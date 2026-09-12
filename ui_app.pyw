@@ -39,8 +39,9 @@ CTX = {
     "fetch": TOPIC_IDS["getting-started"],
     "save": TOPIC_IDS["exports"],
     "export_csv": TOPIC_IDS["exports"],
-    "infographic": TOPIC_IDS["exports"],
-    "infogram_key": TOPIC_IDS["exports"],
+    "chart_export": TOPIC_IDS["exports"],
+    "chart_token": TOPIC_IDS["exports"],
+    "quickchart": TOPIC_IDS["exports"],
     "results": TOPIC_IDS["interface"],
 }
 
@@ -88,72 +89,6 @@ class Tooltip:
         self.tipwindow = None
         if tw:
             tw.destroy()
-
-
-class TemplatePickerDialog:
-    """Modal dialog listing the account's Infogram projects for template choice."""
-
-    def __init__(self, parent, projects):
-        self.result = None
-        self.root = top = tk.Toplevel(parent)
-        top.title("Choose Infogram Template")
-        top.transient(parent)
-        top.grab_set()
-        top.resizable(True, True)
-
-        ttk.Label(top, text=(
-            "Pick the project WeatherSnake should use as its template.\n"
-            "It needs a text block (title) and a table chart (data)."
-        )).pack(anchor=tk.W, padx=12, pady=(12, 6))
-
-        columns = ("title", "state", "modified")
-        self.tree = ttk.Treeview(top, columns=columns, show="headings", height=12)
-        self.tree.heading("title", text="Project")
-        self.tree.heading("state", text="State")
-        self.tree.heading("modified", text="Modified")
-        self.tree.column("title", width=320)
-        self.tree.column("state", width=90, anchor=tk.CENTER)
-        self.tree.column("modified", width=160, anchor=tk.CENTER)
-        for p in projects:
-            self.tree.insert("", tk.END, iid=p["projectId"], values=(
-                p["title"], p["state"], p["modifiedAt"]))
-        self.tree.pack(fill=tk.BOTH, expand=True, padx=12, pady=6)
-
-        button_row = ttk.Frame(top)
-        button_row.pack(fill=tk.X, padx=12, pady=(0, 12))
-        select_btn = ttk.Button(button_row, text="Use Selected", command=self._use_selected)
-        select_btn.pack(side=tk.RIGHT, padx=(6, 0))
-        ttk.Button(button_row, text="Cancel", command=top.destroy).pack(side=tk.RIGHT)
-        ttk.Button(button_row, text="Enter ID manually…",
-                   command=self._manual).pack(side=tk.LEFT)
-
-        self.tree.bind("<Double-1>", lambda e: self._use_selected())
-        self.tree.bind("<Return>", lambda e: self._use_selected())
-        self.tree.focus_set()
-        if self.tree.get_children():
-            first = self.tree.get_children()[0]
-            self.tree.selection_set(first)
-            self.tree.focus(first)
-
-        top.update_idletasks()
-        px, py = parent.winfo_rootx(), parent.winfo_rooty()
-        top.wm_geometry(f"+{px + 60}+{py + 60}")
-        top.protocol("WM_DELETE_WINDOW", top.destroy)
-        top.wait_window()
-
-    def _use_selected(self):
-        selection = self.tree.selection()
-        if not selection:
-            messagebox.showwarning("Choose Infogram Template",
-                                   "Select a project first.", parent=self.root)
-            return
-        self.result = selection[0]
-        self.root.destroy()
-
-    def _manual(self):
-        """Close the picker and fall through to manual ID entry."""
-        self.manual_requested = True
-        self.root.destroy()
 
 
 class WeatherJuiceApp:
@@ -326,17 +261,23 @@ class WeatherJuiceApp:
         self.export_csv_btn.grid(row=0, column=12, padx=10, pady=5, sticky=tk.W)
         self.create_tooltip(self.export_csv_btn, "Export the processed data to a CSV file.")
 
-        # Export CSV & Infographic Button
-        self.export_infographic_btn = ttk.Button(input_frame, text="CSV + Infographic", command=self.export_csv_and_infographic)
-        self.export_infographic_btn.grid(row=0, column=13, padx=10, pady=5, sticky=tk.W)
-        self.create_tooltip(self.export_infographic_btn,
-                            "Export CSV and publish an Infogram infographic from a template (requires API token).")
+        # Export CSV & Publish Online Chart Button
+        self.export_chart_btn = ttk.Button(input_frame, text="CSV + Online Chart", command=self.export_csv_and_chart)
+        self.export_chart_btn.grid(row=0, column=13, padx=10, pady=5, sticky=tk.W)
+        self.create_tooltip(self.export_chart_btn,
+                            "Export CSV and publish an interactive Datawrapper chart (requires a free API token).")
 
-        # Set Infogr.am API Key Button
-        self.set_api_key_btn = ttk.Button(input_frame, text="Infogram Token", command=self.set_infogram_credentials)
-        self.set_api_key_btn.grid(row=0, column=14, padx=10, pady=5, sticky=tk.W)
+        # QuickChart PNG Button
+        self.quickchart_btn = ttk.Button(input_frame, text="QuickChart PNG", command=self.export_quickchart_png)
+        self.quickchart_btn.grid(row=0, column=14, padx=10, pady=5, sticky=tk.W)
+        self.create_tooltip(self.quickchart_btn,
+                            "Render the current data as a PNG chart image via QuickChart (no account needed).")
+
+        # Set Datawrapper Token Button
+        self.set_api_key_btn = ttk.Button(input_frame, text="Datawrapper Token", command=self.set_datawrapper_token)
+        self.set_api_key_btn.grid(row=0, column=15, padx=10, pady=5, sticky=tk.W)
         self.create_tooltip(self.set_api_key_btn,
-                            "Set your Infogram API token and template project ID (stored locally).")
+                            "Set your Datawrapper API token (stored locally).")
 
         # Custom Range day/month selectors (row 1, initially hidden)
         month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -435,8 +376,9 @@ class WeatherJuiceApp:
         register_help(self.fetch_btn, CTX["fetch"])
         register_help(self.save_btn, CTX["save"])
         register_help(self.export_csv_btn, CTX["export_csv"])
-        register_help(self.export_infographic_btn, CTX["infographic"])
-        register_help(self.set_api_key_btn, CTX["infogram_key"])
+        register_help(self.export_chart_btn, CTX["chart_export"])
+        register_help(self.quickchart_btn, CTX["quickchart"])
+        register_help(self.set_api_key_btn, CTX["chart_token"])
         for w in self._custom_range_widgets:
             register_help(w, CTX["period"])
         for w in self._month_widgets:
@@ -527,9 +469,8 @@ class WeatherJuiceApp:
         # Month selector
         if s.get("selected_month") is not None:
             self._month_select_var.set(list(self._month_to_num.keys())[s["selected_month"]-1])
-        # Infogram API credentials
-        self._infograma_key = s.get("infograma_key", "")
-        self._infograma_template = s.get("infograma_template", "")
+        # Datawrapper API token
+        self._datawrapper_token = s.get("datawrapper_token", "")
 
     def save_settings(self):
         """Save current widget values to JSON file."""
@@ -562,9 +503,8 @@ class WeatherJuiceApp:
         s["end_day"] = int(self._cr_end_day.get()) if self._cr_end_day.get() else None
         # Month selector
         s["selected_month"] = self._month_to_num.get(self._month_select_var.get())
-        # Infogram API credentials
-        s["infograma_key"] = getattr(self, "_infograma_key", "")
-        s["infograma_template"] = getattr(self, "_infograma_template", "")
+        # Datawrapper API token
+        s["datawrapper_token"] = getattr(self, "_datawrapper_token", "")
         try:
             os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
             with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
@@ -631,7 +571,8 @@ class WeatherJuiceApp:
         self.fetch_btn.config(state="disabled")
         self.save_btn.config(state="disabled")
         self.export_csv_btn.config(state="disabled")
-        self.export_infographic_btn.config(state="disabled")
+        self.export_chart_btn.config(state="disabled")
+        self.quickchart_btn.config(state="disabled")
         self.status_var.set("Fetching coordinates...")
         self.tree.delete(*self.tree.get_children())
         if self.canvas_widget:
@@ -810,7 +751,8 @@ class WeatherJuiceApp:
         self.fetch_btn.config(state="normal")
         self.save_btn.config(state="normal")
         self.export_csv_btn.config(state="normal")
-        self.export_infographic_btn.config(state="normal")
+        self.export_chart_btn.config(state="normal")
+        self.quickchart_btn.config(state="normal")
         # Save settings after successful fetch
         self.save_settings()
 
@@ -838,181 +780,172 @@ class WeatherJuiceApp:
             logger.error("Failed to export CSV", exc_info=True)
             messagebox.showerror("Error", f"Failed to export CSV:\n{e}", parent=self.root)
 
-    # ----- Infogram Integration -----
-    def set_infogram_credentials(self):
-        """Prompt for the Infogram API token, then pick the template project."""
+    # ----- Datawrapper Integration -----
+    def set_datawrapper_token(self):
+        """Prompt for the Datawrapper API token, verify, and store it."""
         token = simpledialog.askstring(
-            "Infogram API Token",
-            "Enter your Infogram API token\n(infogram.com, account settings, API):",
-            initialvalue=getattr(self, "_infograma_key", ""), show="*", parent=self.root)
+            "Datawrapper API Token",
+            "Enter your Datawrapper API token\n(app.datawrapper.de, Settings & Account,\n"
+            "API tokens — free account required):",
+            initialvalue=getattr(self, "_datawrapper_token", ""), show="*", parent=self.root)
         if token is None:
             return
         token = token.strip()
         if not token:
-            messagebox.showwarning("Infogram Token", "The token cannot be empty.",
+            messagebox.showwarning("Datawrapper Token", "The token cannot be empty.",
                                    parent=self.root)
             return
-        # The project list comes from the network; fetch it off the UI thread.
-        self.status_var.set("Fetching your Infogram projects...")
-        threading.Thread(target=self._infogram_template_worker, args=(token,),
-                         daemon=True).start()
-
-    def _infogram_template_worker(self, token):
-        """Background fetch of the project list for template selection."""
-        from infogram_client import InfogramError, list_projects
-        try:
-            projects = list_projects(token)
-        except InfogramError as e:
-            logger.error("Infogram project list failed: %s", e)
-            self.root.after(0, self._infogram_template_failed, token, str(e))
-            return
-        self.root.after(0, self._infogram_template_pick, token, projects)
-
-    def _infogram_template_failed(self, token, message):
-        """The list fetch failed (usually a bad token); offer manual entry."""
-        self.status_var.set("Ready.")
-        if not messagebox.askyesno(
-                "Infogram Token",
-                f"Could not fetch your Infogram projects:\n\n{message}\n\n"
-                "Do you want to enter the template project ID manually instead?",
-                parent=self.root):
-            return
-        self._ask_template_id(token)
-
-    def _infogram_template_pick(self, token, projects):
-        """Show the template picker, or explain when the account is empty."""
-        self.status_var.set("Ready.")
-        if not projects:
-            messagebox.showinfo(
-                "Infogram Token",
-                "The token works, but this Infogram account has no projects yet.\n\n"
-                "Create a template in Infogram first: a project containing a text "
-                "block (for the title) and a table chart (for the data). Then press "
-                "Infogram Token again to pick it.",
-                parent=self.root)
-            return
-        dialog = TemplatePickerDialog(self.root, projects)
-        chosen = dialog.result
-        if chosen is None:
-            if getattr(dialog, "manual_requested", False):
-                self._ask_template_id(token)
-            return
-        self._save_infogram_credentials(token, chosen)
-
-    def _ask_template_id(self, token):
-        """Manual fallback: paste a template project ID directly."""
-        template = simpledialog.askstring(
-            "Infogram Template Project ID",
-            "Enter the project ID of your Infogram template\n"
-            "(the UUID from the project card's context menu, 'Copy project ID'):\n\n"
-            "The template needs a text block and a table chart; WeatherSnake\n"
-            "copies it and fills in your weather data.",
-            initialvalue=getattr(self, "_infograma_template", ""), parent=self.root)
-        if template is None or not template.strip():
-            return
-        self._save_infogram_credentials(token, template.strip())
-
-    def _save_infogram_credentials(self, token, template):
-        """Store the credentials and verify them against the API in the background."""
-        self._infograma_key = token
-        self._infograma_template = template
+        self._datawrapper_token = token
         self.save_settings()
-        self.status_var.set("Verifying Infogram credentials...")
-        threading.Thread(target=self._verify_infogram_credentials,
-                         args=(self._infograma_key, self._infograma_template),
+        self.status_var.set("Verifying Datawrapper token...")
+        threading.Thread(target=self._verify_datawrapper_token, args=(token,),
                          daemon=True).start()
 
-    def _verify_infogram_credentials(self, token, template):
+    def _verify_datawrapper_token(self, token):
         """Background credential check; reports via parented dialog."""
-        from infogram_client import check_credentials
-        problem = check_credentials(token, template)
+        from datawrapper_client import check_credentials
+        problem = check_credentials(token)
         def report():
             self.status_var.set("Ready.")
             if problem is None:
                 messagebox.showinfo(
-                    "Infogram Credentials Saved",
-                    "Token and template verified against the Infogram API.",
+                    "Datawrapper Token Saved",
+                    "Token verified against the Datawrapper API.",
                     parent=self.root)
             else:
                 messagebox.showwarning(
-                    "Infogram Credentials",
-                    f"Credentials saved, but the API check failed:\n\n{problem}",
+                    "Datawrapper Token",
+                    f"Token saved, but the API check failed:\n\n{problem}",
                     parent=self.root)
         self.root.after(0, report)
 
-    def export_csv_and_infographic(self):
-        """Export CSV, then create an Infogram infographic (runs in background)."""
+    def _require_last_data(self):
+        """Return (df, city, period) of the last fetch, or None after showing a warning."""
         if not hasattr(self, '_last_city') or not hasattr(self, '_last_period'):
             messagebox.showwarning("Warning", "No data available to export. Please fetch data first.",
                                    parent=self.root)
-            return
+            return None
         if not hasattr(self, '_last_df'):
             messagebox.showwarning("Warning", "No processed data stored. Please fetch data again.",
                                    parent=self.root)
-            return
+            return None
+        return self._last_df, self._last_city, self._last_period
 
-        api_key = getattr(self, "_infograma_key", "") or os.getenv("INFOGRAM_API_TOKEN", "")
-        template = getattr(self, "_infograma_template", "") or os.getenv("INFOGRAM_TEMPLATE_ID", "")
-        if not api_key or not template:
-            messagebox.showwarning(
-                "API Credentials Missing",
-                "Infogram needs an API token and a template project ID.\n\n"
-                "Click 'Infogram Token' to enter both (token from Infogram "
-                "account settings, API; template ID from the project card's "
-                "context menu), or set INFOGRAM_API_TOKEN and "
-                "INFOGRAM_TEMPLATE_ID environment variables.",
-                parent=self.root)
-            return
-
-        df = self._last_df
-        city = self._last_city
-        period = self._last_period
+    def _export_csv_step(self, df, city, period):
+        """Run the CSV export step; returns True on success."""
         try:
             csv_filename = export_to_csv(df, city, period)
             logger.info("CSV exported to %s", csv_filename)
+            return True
         except Exception as e:
             logger.error("Failed to export CSV", exc_info=True)
             messagebox.showerror("Error", f"Failed to export CSV:\n{e}", parent=self.root)
+            return False
+
+    def export_csv_and_chart(self):
+        """Export CSV, then publish a Datawrapper chart (runs in background)."""
+        data = self._require_last_data()
+        if data is None:
+            return
+        df, city, period = data
+
+        token = getattr(self, "_datawrapper_token", "") or os.getenv("DATAWRAPPER_ACCESS_TOKEN", "")
+        if not token:
+            messagebox.showwarning(
+                "API Token Missing",
+                "Datawrapper needs a free API token.\n\n"
+                "Click 'Datawrapper Token' to enter it (create one at\n"
+                "app.datawrapper.de, Settings & Account, API tokens),\n"
+                "or set the DATAWRAPPER_ACCESS_TOKEN environment variable.",
+                parent=self.root)
             return
 
-        # The API call can take seconds; run it off the UI thread so the
+        if not self._export_csv_step(df, city, period):
+            return
+
+        # The API calls can take seconds; run them off the UI thread so the
         # window stays responsive, and report back via root.after.
-        self.export_infographic_btn.config(state="disabled")
-        self.status_var.set("Creating Infogram infographic...")
+        self.export_chart_btn.config(state="disabled")
+        self.status_var.set("Publishing Datawrapper chart...")
         threading.Thread(
-            target=self._infogram_worker,
-            args=(df, city, period, getattr(self, '_last_units', 'metric'), api_key, template),
+            target=self._datawrapper_worker,
+            args=(df, city, period, getattr(self, '_last_units', 'metric'), token),
             daemon=True).start()
 
-    def _infogram_worker(self, df, city, period, units, api_key, template):
-        """Background Infogram request; always reports the outcome to the UI."""
-        from infogram_client import InfogramError, create_infographic
+    def _datawrapper_worker(self, df, city, period, units, token):
+        """Background Datawrapper request; always reports the outcome to the UI."""
+        from datawrapper_client import DatawrapperError, create_chart
 
         def report_success(result):
             self.status_var.set("Ready.")
-            self.export_infographic_btn.config(state="normal")
+            self.export_chart_btn.config(state="normal")
             if messagebox.askyesno(
-                    "Infogram Success",
-                    f"Infographic created successfully!\n\n{result['url']}\n\nOpen it in your browser now?",
+                    "Datawrapper Success",
+                    f"Chart published successfully!\n\n{result['url']}\n\nOpen it in your browser now?",
                     parent=self.root):
                 webbrowser.open(result["url"])
 
         def report_failure(message):
-            self.status_var.set("Infogram export failed.")
-            self.export_infographic_btn.config(state="normal")
-            messagebox.showerror("Infogram Error", message, parent=self.root)
+            self.status_var.set("Datawrapper export failed.")
+            self.export_chart_btn.config(state="normal")
+            messagebox.showerror("Datawrapper Error", message, parent=self.root)
 
         try:
-            result = create_infographic(df, city, period, units, api_key, template)
-        except InfogramError as e:
-            logger.error("Infogram API error: %s", e)
+            result = create_chart(df, city, period, units, token)
+        except DatawrapperError as e:
+            logger.error("Datawrapper API error: %s", e)
             self.root.after(0, report_failure, str(e))
         except Exception as e:
-            logger.error("Unexpected Infogram failure", exc_info=True)
+            logger.error("Unexpected Datawrapper failure", exc_info=True)
             self.root.after(0, report_failure,
-                            f"Unexpected problem contacting Infogram:\n{e.__class__.__name__}: {e}")
+                            f"Unexpected problem contacting Datawrapper:\n{e.__class__.__name__}: {e}")
         else:
             self.root.after(0, report_success, result)
+
+    # ----- QuickChart PNG Export -----
+    def export_quickchart_png(self):
+        """Render the current data as a PNG chart via QuickChart (no account)."""
+        data = self._require_last_data()
+        if data is None:
+            return
+        df, city, period = data
+
+        self.quickchart_btn.config(state="disabled")
+        self.status_var.set("Rendering chart via QuickChart...")
+        threading.Thread(
+            target=self._quickchart_worker,
+            args=(df, city, period, getattr(self, '_last_units', 'metric')),
+            daemon=True).start()
+
+    def _quickchart_worker(self, df, city, period, units):
+        """Background QuickChart render; always reports the outcome to the UI."""
+        from quickchart_client import QuickChartError, export_chart_png
+
+        def report_success(filepath):
+            self.status_var.set("Ready.")
+            self.quickchart_btn.config(state="normal")
+            if messagebox.askyesno(
+                    "QuickChart Success",
+                    f"Chart image saved:\n\n{filepath}\n\nOpen it now?",
+                    parent=self.root):
+                webbrowser.open(f"file:///{filepath.replace(os.sep, '/')}")
+
+        def report_failure(message):
+            self.status_var.set("QuickChart export failed.")
+            self.quickchart_btn.config(state="normal")
+            messagebox.showerror("QuickChart Error", message, parent=self.root)
+
+        try:
+            filepath = export_chart_png(df, city, period, units)
+        except QuickChartError as e:
+            logger.error("QuickChart error: %s", e)
+            self.root.after(0, report_failure, str(e))
+        except Exception as e:
+            logger.error("Unexpected QuickChart failure", exc_info=True)
+            self.root.after(0, report_failure,
+                            f"Unexpected problem contacting QuickChart:\n{e.__class__.__name__}: {e}")
+        else:
+            self.root.after(0, report_success, filepath)
 
     # ----- Existing methods -----
     def _generate_filename(self):
@@ -1050,7 +983,8 @@ class WeatherJuiceApp:
         self.fetch_btn.config(state="normal")
         self.save_btn.config(state="disabled")
         self.export_csv_btn.config(state="disabled")
-        self.export_infographic_btn.config(state="disabled")
+        self.export_chart_btn.config(state="disabled")
+        self.quickchart_btn.config(state="disabled")
 
 
 if __name__ == "__main__":
