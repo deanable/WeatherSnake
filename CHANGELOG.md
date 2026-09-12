@@ -3,10 +3,13 @@
 All notable changes to WeatherSnake are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [1.2.0] - 2026-09-12
 
 ### Added
 - **Sigstore signing of release artifacts**: the release job installs cosign (`sigstore/cosign-installer@v3`), generates a `SHA256SUMS.txt` manifest, and keylessly signs every installer/archive plus the manifest with the workflow's ephemeral OIDC identity. `.sig` and `.pem` certificate files are published next to the binaries on the GitHub Release, after an in-workflow verification pass against `https://github.com/deanable/WeatherSnake/.github/workflows/build-release.yml@refs/tags/v*`. Verify a download with `cosign verify-blob --certificate <file>.pem --signature <file>.sig --certificate-identity-regexp '^https://github.com/deanable/WeatherSnake/\.github/workflows/build-release\.yml@refs/tags/v.+$' --certificate-oidc-issuer https://token.actions.githubusercontent.com <file>`.
+
+### Fixed
+- **Infogram export now targets the current Infogram API (`api.infogram.com`).** The prior fix implemented the legacy HMAC-signed API (`infogr.am/service/v1` with an API key *and* secret); accounts provisioned on the current API use a single bearer token instead. The client now implements the documented token workflow: `copyProject` (duplicate a user-chosen template containing a text block and table chart) → `getProjectData` → `updateProjectEntities` (title + weather table) → `publishProject` (share URL). One `INFOGRAM_API_TOKEN` plus `INFOGRAM_TEMPLATE_ID` replaces the key/secret pair; the *Infogram Token* button asks for both values and verifies them live. Background threading, parented dialogs, and per-step error messages (rejected token, wrong template ID, template without a chart, 5xx, network) are unchanged. The legacy HMAC signing implementation and its worked-example tests were replaced by flow tests for the new endpoints.
 
 ## [1.1.0] - 2026-09-12
 

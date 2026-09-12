@@ -31,18 +31,31 @@ named <span class="kbd">weather_report_&lt;city&gt;_&lt;period&gt;.csv</span>. V
 (<span class="kbd">pandas.read_csv</span>).</p>
 
 <h2>CSV + Infographic</h2>
-<p>Performs the CSV export and then creates an Infogr.am infographic from the same data:</p>
+<p>Performs the CSV export and then publishes an Infogram infographic from the same data —
+the requests run in the background, so the window stays responsive and the status bar
+shows progress:</p>
 <ol>
-	<li>Set your Infogr.am API key first via the <strong>Infogr.am Key</strong> button, or set
-	the <span class="kbd">INFOGRAM_API_KEY</span> environment variable.</li>
-	<li>Press <strong>CSV + Infographic</strong>. On success a dialog shows the link to the
-	created infographic.</li>
+	<li>Create a <strong>template project</strong> in Infogram (infogr.am): a project containing
+	a text block (for the title) and a table chart (for the data). Open its context menu on the
+	project card and choose <strong>Copy project ID</strong>.</li>
+	<li>Create an <strong>API token</strong> in your Infogram account settings (API section).
+	One token is enough — no secret key is needed.</li>
+	<li>Click <strong>Infogram Token</strong> and enter the token and the template project ID
+	(both stored locally in <span class="kbd">ui_settings.json</span>). WeatherSnake verifies
+	them against the API immediately. Alternatively set the <span class="kbd">INFOGRAM_API_TOKEN</span>
+	and <span class="kbd">INFOGRAM_TEMPLATE_ID</span> environment variables.</li>
+	<li>Press <strong>CSV + Infographic</strong>. WeatherSnake copies the template, fills the text
+	block with the location/period title and the table chart with your weather data, then
+	publishes it and shows the share link (it opens in your browser if you accept).</li>
+	<li>On failure a dialog explains exactly what went wrong — unreachable service, rejected
+	token (with the server's response), a template without a chart block, or an Infogram
+	server-side problem — and the details are also written to the log file. If a step fails
+	after copying, the half-filled draft remains in your Infogram library so nothing is lost.</li>
 </ol>
 
-<div class="warning"><strong>API key required.</strong> The Infogr.am REST API needs a paid/key
-account; the key is stored locally in
-<span class="kbd">ui_settings.json</span>. Without it, the CSV is still exported and you'll be
-prompted for the key.</div>
+<div class="warning"><strong>Template required.</strong> The current Infogram API cannot build a
+project from scratch: it edits copies of an existing template. Projects publish as
+<strong>private</strong> (link-only) by default.</div>
 
 <h2>Command line exports</h2>
 <p>Every CLI run automatically writes both files next to the working directory:</p>

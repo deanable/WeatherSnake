@@ -31,10 +31,10 @@ jobs:
         pip install -r requirements.txt
 
     - name: Compile-check all modules
-      run: python -m py_compile weather_juice.py api_client.py processing.py output.py conditions.py stats.py logger_setup.py ui_app.pyw version.py build_chm.py help_launcher.py
+      run: python -m py_compile weather_juice.py api_client.py processing.py output.py conditions.py stats.py logger_setup.py ui_app.pyw version.py build_chm.py help_launcher.py infogram_client.py
 
     - name: Validate help system
       run: python build_chm.py
 
     - name: Run tests
-      run: pytest test_processing.py test_insights.py test_help.py -q
+      run: pytest test_processing.py test_insights.py test_help.py test_infogram.py -q

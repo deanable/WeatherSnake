@@ -6,6 +6,7 @@ from tkinter import ttk, messagebox, simpledialog
 import threading
 import json
 import os
+import webbrowser
 from datetime import datetime
 
 import matplotlib
@@ -263,12 +264,13 @@ class WeatherJuiceApp:
         self.export_infographic_btn = ttk.Button(input_frame, text="CSV + Infographic", command=self.export_csv_and_infographic)
         self.export_infographic_btn.grid(row=0, column=13, padx=10, pady=5, sticky=tk.W)
         self.create_tooltip(self.export_infographic_btn,
-                            "Export CSV and send data to Infogr.am to create an infographic (requires API key).")
+                            "Export CSV and publish an Infogram infographic from a template (requires API token).")
 
         # Set Infogr.am API Key Button
-        self.set_api_key_btn = ttk.Button(input_frame, text="Infogr.am Key", command=self.set_infograma_key)
+        self.set_api_key_btn = ttk.Button(input_frame, text="Infogram Token", command=self.set_infogram_credentials)
         self.set_api_key_btn.grid(row=0, column=14, padx=10, pady=5, sticky=tk.W)
-        self.create_tooltip(self.set_api_key_btn, "Set your Infogr.am API key (stored locally).")
+        self.create_tooltip(self.set_api_key_btn,
+                            "Set your Infogram API token and template project ID (stored locally).")
 
         # Custom Range day/month selectors (row 1, initially hidden)
         month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -459,8 +461,9 @@ class WeatherJuiceApp:
         # Month selector
         if s.get("selected_month") is not None:
             self._month_select_var.set(list(self._month_to_num.keys())[s["selected_month"]-1])
-        # Infogr.am API key
+        # Infogram API credentials
         self._infograma_key = s.get("infograma_key", "")
+        self._infograma_template = s.get("infograma_template", "")
 
     def save_settings(self):
         """Save current widget values to JSON file."""
@@ -493,8 +496,9 @@ class WeatherJuiceApp:
         s["end_day"] = int(self._cr_end_day.get()) if self._cr_end_day.get() else None
         # Month selector
         s["selected_month"] = self._month_to_num.get(self._month_select_var.get())
-        # Infogr.am API key
+        # Infogram API credentials
         s["infograma_key"] = getattr(self, "_infograma_key", "")
+        s["infograma_template"] = getattr(self, "_infograma_template", "")
         try:
             os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
             with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
@@ -555,7 +559,7 @@ class WeatherJuiceApp:
         city = self._get_city()
         if not city:
             logger.warning("Fetch attempted with empty city name")
-            messagebox.showerror("Error", "Please enter a city or location name.")
+            messagebox.showerror("Error", "Please enter a city or location name.", parent=self.root)
             return
 
         self.fetch_btn.config(state="disabled")
@@ -682,6 +686,7 @@ class WeatherJuiceApp:
             self._last_city = city
             self._last_period = display_period
             self._last_depth = depth
+            self._last_units = units
 
             self.root.after(0, self.update_ui, processed_df, fig, units, insights_text)
 
@@ -747,106 +752,145 @@ class WeatherJuiceApp:
     def export_csv(self):
         """Export the current processed data to CSV using output.export_to_csv."""
         if not hasattr(self, '_last_city') or not hasattr(self, '_last_period'):
-            messagebox.showwarning("Warning", "No data available to export. Please fetch data first.")
+            messagebox.showwarning("Warning", "No data available to export. Please fetch data first.",
+                                   parent=self.root)
             return
         try:
             # We need the processed DataFrame; we can regenerate or store it.
             # For simplicity, we'll call the processing again with last used params.
             # But we can store the last_df in update_ui.
             if not hasattr(self, '_last_df'):
-                messagebox.showwarning("Warning", "No processed data stored. Please fetch data again.")
+                messagebox.showwarning("Warning", "No processed data stored. Please fetch data again.",
+                                   parent=self.root)
                 return
             df = self._last_df
             city = self._last_city
             period = self._last_period
             filename = export_to_csv(df, city, period)
-            messagebox.showinfo("Success", f"Data exported to {filename}")
+            messagebox.showinfo("Success", f"Data exported to {filename}", parent=self.root)
         except Exception as e:
             logger.error("Failed to export CSV", exc_info=True)
-            messagebox.showerror("Error", f"Failed to export CSV:\n{e}")
+            messagebox.showerror("Error", f"Failed to export CSV:\n{e}", parent=self.root)
 
-    # ----- Infogr.am Integration -----
-    def set_infograma_key(self):
-        """Prompt user for Infogr.am API key and store it."""
-        key = simpledialog.askstring("Infogr.am API Key", "Enter your Infogr.am API key:", show='*')
-        if key is not None:
-            self._infograma_key = key.strip()
-            self.save_settings()
-            messagebox.showinfo("Success", "Infogr.am API key saved.")
-        else:
-            # user cancelled or left empty
-            pass
+    # ----- Infogram Integration -----
+    def set_infogram_credentials(self):
+        """Prompt for the Infogram API token and template project ID, then verify."""
+        token = simpledialog.askstring(
+            "Infogram API Token",
+            "Enter your Infogram API token\n(infogram.com, account settings, API):",
+            initialvalue=getattr(self, "_infograma_key", ""), show="*", parent=self.root)
+        if token is None:
+            return
+        template = simpledialog.askstring(
+            "Infogram Template Project ID",
+            "Enter the project ID of your Infogram template\n"
+            "(the UUID from the project card's context menu, 'Copy project ID'):\n\n"
+            "The template needs a text block and a table chart; WeatherSnake\n"
+            "copies it and fills in your weather data.",
+            initialvalue=getattr(self, "_infograma_template", ""), parent=self.root)
+        if template is None:
+            return
+        self._infograma_key = token.strip()
+        self._infograma_template = template.strip()
+        self.save_settings()
+
+        # Verify in the background so a slow network never freezes the window.
+        self.status_var.set("Verifying Infogram credentials...")
+        threading.Thread(target=self._verify_infogram_credentials,
+                         args=(self._infograma_key, self._infograma_template),
+                         daemon=True).start()
+
+    def _verify_infogram_credentials(self, token, template):
+        """Background credential check; reports via parented dialog."""
+        from infogram_client import check_credentials
+        problem = check_credentials(token, template)
+        def report():
+            self.status_var.set("Ready.")
+            if problem is None:
+                messagebox.showinfo(
+                    "Infogram Credentials Saved",
+                    "Token and template verified against the Infogram API.",
+                    parent=self.root)
+            else:
+                messagebox.showwarning(
+                    "Infogram Credentials",
+                    f"Credentials saved, but the API check failed:\n\n{problem}",
+                    parent=self.root)
+        self.root.after(0, report)
 
     def export_csv_and_infographic(self):
-        """Export CSV and then send data to Infogr.am to create an infographic."""
+        """Export CSV, then create an Infogram infographic (runs in background)."""
         if not hasattr(self, '_last_city') or not hasattr(self, '_last_period'):
-            messagebox.showwarning("Warning", "No data available to export. Please fetch data first.")
+            messagebox.showwarning("Warning", "No data available to export. Please fetch data first.",
+                                   parent=self.root)
             return
-        # Ensure we have stored dataframe
         if not hasattr(self, '_last_df'):
-            messagebox.showwarning("Warning", "No processed data stored. Please fetch data again.")
+            messagebox.showwarning("Warning", "No processed data stored. Please fetch data again.",
+                                   parent=self.root)
             return
+
+        api_key = getattr(self, "_infograma_key", "") or os.getenv("INFOGRAM_API_TOKEN", "")
+        template = getattr(self, "_infograma_template", "") or os.getenv("INFOGRAM_TEMPLATE_ID", "")
+        if not api_key or not template:
+            messagebox.showwarning(
+                "API Credentials Missing",
+                "Infogram needs an API token and a template project ID.\n\n"
+                "Click 'Infogram Token' to enter both (token from Infogram "
+                "account settings, API; template ID from the project card's "
+                "context menu), or set INFOGRAM_API_TOKEN and "
+                "INFOGRAM_TEMPLATE_ID environment variables.",
+                parent=self.root)
+            return
+
         df = self._last_df
         city = self._last_city
         period = self._last_period
-        # Export CSV first
         try:
             csv_filename = export_to_csv(df, city, period)
             logger.info("CSV exported to %s", csv_filename)
         except Exception as e:
             logger.error("Failed to export CSV", exc_info=True)
-            messagebox.showerror("Error", f"Failed to export CSV:\n{e}")
+            messagebox.showerror("Error", f"Failed to export CSV:\n{e}", parent=self.root)
             return
 
-        # Get API key from settings or environment
-        api_key = getattr(self, "_infograma_key", "")
-        if not api_key:
-            # try environment variable as fallback
-            api_key = os.getenv("INFOGRAM_API_KEY", "")
-        if not api_key:
-            messagebox.showwarning("API Key Missing",
-                                   "Infogr.am API key is not set.\n"
-                                   "Click 'Infogr.am Key' button to enter it or set environment variable INFOGRAM_API_KEY.")
-            return
+        # The API call can take seconds; run it off the UI thread so the
+        # window stays responsive, and report back via root.after.
+        self.export_infographic_btn.config(state="disabled")
+        self.status_var.set("Creating Infogram infographic...")
+        threading.Thread(
+            target=self._infogram_worker,
+            args=(df, city, period, getattr(self, '_last_units', 'metric'), api_key, template),
+            daemon=True).start()
 
-        # Prepare data for Infogr.am (simplified)
-        # According to Infogr.am REST API, you can create an object with data.
-        # We'll assume endpoint: https://infogr.am/v1/objects
-        # We'll send a JSON payload with type: "infographic" and data: CSV content.
-        import requests
+    def _infogram_worker(self, df, city, period, units, api_key, template):
+        """Background Infogram request; always reports the outcome to the UI."""
+        from infogram_client import InfogramError, create_infographic
+
+        def report_success(result):
+            self.status_var.set("Ready.")
+            self.export_infographic_btn.config(state="normal")
+            if messagebox.askyesno(
+                    "Infogram Success",
+                    f"Infographic created successfully!\n\n{result['url']}\n\nOpen it in your browser now?",
+                    parent=self.root):
+                webbrowser.open(result["url"])
+
+        def report_failure(message):
+            self.status_var.set("Infogram export failed.")
+            self.export_infographic_btn.config(state="normal")
+            messagebox.showerror("Infogram Error", message, parent=self.root)
+
         try:
-            with open(csv_filename, 'r', encoding='utf-8') as f:
-                csv_content = f.read()
-            url = "https://infogr.am/v1/objects"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "type": "infographic",
-                "data": {
-                    "csv": csv_content
-                },
-                "name": f"WeatherSnake {city} {period}"
-            }
-            logger.info("Sending request to Infogr.am")
-            response = requests.post(url, json=payload, headers=headers, timeout=30)
-            if response.status_code in (200, 201):
-                result = response.json()
-                object_url = result.get("data", {}).get("url") or result.get("url")
-                if object_url:
-                    messagebox.showinfo("Infogr.am Success",
-                                        f"Infographic created successfully!\nView it here:\n{object_url}")
-                else:
-                    messagebox.showinfo("Infogr.am Success",
-                                        f"Infographic created (response: {result})")
-            else:
-                logger.error("Infogr.am API error: %s - %s", response.status_code, response.text)
-                messagebox.showerror("Infogr.am Error",
-                                     f"Failed to create infographic.\nStatus: {response.status_code}\n{response.text}")
+            result = create_infographic(df, city, period, units, api_key, template)
+        except InfogramError as e:
+            logger.error("Infogram API error: %s", e)
+            self.root.after(0, report_failure, str(e))
         except Exception as e:
-            logger.error("Exception during Infogr.am request", exc_info=True)
-            messagebox.showerror("Error", f"An error occurred while contacting Infogr.am:\n{e}")
+            logger.error("Unexpected Infogram failure", exc_info=True)
+            self.root.after(0, report_failure,
+                            f"Unexpected problem contacting Infogram:\n{e.__class__.__name__}: {e}")
+        else:
+            self.root.after(0, report_success, result)
 
     # ----- Existing methods -----
     def _generate_filename(self):
@@ -873,13 +917,13 @@ class WeatherJuiceApp:
                 try:
                     self.current_fig.savefig(filepath, format="jpg", dpi=300)
                     logger.info("Chart saved to %s", filepath)
-                    messagebox.showinfo("Success", f"Chart saved successfully to:\n{filepath}")
+                    messagebox.showinfo("Success", f"Chart saved successfully to:\n{filepath}", parent=self.root)
                 except Exception as e:
                     logger.error("Failed to save chart to %s", filepath, exc_info=True)
-                    messagebox.showerror("Error", f"Failed to save image:\n{e}")
+                    messagebox.showerror("Error", f"Failed to save image:\n{e}", parent=self.root)
 
     def show_error(self, message):
-        messagebox.showerror("Error", message)
+        messagebox.showerror("Error", message, parent=self.root)
         self.status_var.set("Error occurred.")
         self.fetch_btn.config(state="normal")
         self.save_btn.config(state="disabled")

@@ -37,13 +37,25 @@
 	<li>Open-Meteo is a free service with fair-use limits; wait a moment and retry.</li>
 </ul>
 
-<h2>Infogr.am export fails</h2>
+<h2>Infogram export fails</h2>
 <ul>
-	<li>Set the key via the <strong>Infogr.am Key</strong> button or the
-	<span class="kbd">INFOGRAM_API_KEY</span> environment variable
-	(see <a href="exports.html">Exporting Data</a>).</li>
-	<li>Check that your Infogr.am account/plan permits API access; the error dialog shows the
-	HTTP status returned.</li>
+	<li>Infogram needs a <strong>single API token</strong> and a <strong>template project ID</strong>.
+	The token comes from your Infogram account settings (API section); the template is one of your
+	projects containing a text block and a table chart — copy its project ID from the project
+	card's context menu. Enter both via the <strong>Infogram Token</strong> button, or set the
+	<span class="kbd">INFOGRAM_API_TOKEN</span> and <span class="kbd">INFOGRAM_TEMPLATE_ID</span>
+	environment variables (see <a href="exports.html">Exporting Data</a>).</li>
+	<li>The button verifies your credentials against the API when you save them — if Infogram
+	rejects them you'll see the server's own explanation in the dialog.</li>
+	<li>"HTTP 401/403" in the error dialog almost always means the token is wrong, expired, or
+	lacks the needed permissions (create/edit/publish).</li>
+	<li>"HTTP 404" means the template project ID doesn't match any project on the token's account
+	(or team) — re-copy the ID from the project card.</li>
+	<li>"The template has no chart block" means the template project needs a table chart to hold
+	the data — add one and retry.</li>
+	<li>"HTTP 5xx" means Infogram's service is having problems — wait a moment and retry.</li>
+	<li>"Could not reach Infogram" means the network request itself failed; check your
+	connection and any proxy/firewall for <span class="kbd">api.infogram.com</span>.</li>
 </ul>
 
 <h2>The window looks wrong or blank</h2>
