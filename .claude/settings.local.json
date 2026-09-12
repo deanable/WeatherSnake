@@ -10,7 +10,15 @@
       "Bash(git mv:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git stash *)",
+      "Bash(ls -la /usr/local/bin/ui_app.pyw 2>&1; echo \"---\"; ls -la /Users/Dean/source/repos/WeatherSnake/ui_app.pyw 2>&1; echo \"---\"; ls -la C:/Users/Dean/source/repos/WeatherSnake/ui_app.pyw 2>&1)",
+      "Bash(ls -la /Users/felix/Projects/WeatherSnake/ui_app.pyw*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "executeautomation-playwright-server",
+    "chrome-devtools"
+  ]
 }
