@@ -13,23 +13,23 @@ set "GIT_REPO=https://github.com/deanable/WeatherSnake.git"
 set "PYTHON="
 
 :: ── 1. Check / fetch application source ─────────────────────────
-if not exist "!APP_DIR!ui_app.pyw" (
+if not exist "%APP_DIR%ui_app.pyw" (
     echo [INFO] Application source not found. Downloading from GitHub...
     where git >nul 2>&1
-    if !errorlevel! equ 0 (
-        git clone "!GIT_REPO!" "!APP_DIR!"
-        if !errorlevel! neq 0 (
+    if %errorlevel% equ 0 (
+        git clone "%GIT_REPO%" "%APP_DIR%"
+        if %errorlevel% neq 0 (
             echo [ERROR] Git clone failed. Check your connection.
             pause
             exit /b 1
         )
-        cd /d "!APP_DIR!"
+        cd /d "%APP_DIR%"
     ) else (
         echo [WARN] Git not found. Downloading via PowerShell...
         powershell -Command "
             $tmp = [System.IO.Path]::GetTempPath();
             $zip = $tmp + 'WeatherSnake.zip';
-            $out = '!APP_DIR!';
+            $out = '%APP_DIR%';
             Write-Host 'Downloading repository ZIP...';
             [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;
             Invoke-WebRequest -Uri 'https://github.com/deanable/WeatherSnake/archive/refs/heads/main.zip' -OutFile $zip;
@@ -40,12 +40,12 @@ if not exist "!APP_DIR!ui_app.pyw" (
             Remove-Item -LiteralPath $zip;
             Write-Host 'Done.';
         "
-        if !errorlevel! neq 0 (
+        if %errorlevel% neq 0 (
             echo [ERROR] Failed to download source.
             pause
             exit /b 1
         )
-        cd /d "!APP_DIR!"
+        cd /d "%APP_DIR%"
     )
 )
 
@@ -95,19 +95,19 @@ for %%d in (
 )
 
 :found_py
-if "!PYTHON!"=="" (
+if "%PYTHON%"=="" (
     echo [ERROR] Could not locate Python. Install it from https://python.org, then re-run.
     pause
     exit /b 1
 )
 
-echo [INFO] Using !PYTHON!:
-"!PYTHON!" --version
+echo [INFO] Using %PYTHON%:
+"%PYTHON%" --version
 
 :: ── 4. Virtual environment ─────────────────────────────────────
 if not exist ".venv\Scripts\activate.bat" (
     echo [INFO] Creating virtual environment...
-    "!PYTHON!" -m venv .venv
+    "%PYTHON%" -m venv .venv
     if errorlevel 1 (
         echo [ERROR] Failed to create virtual environment.
         pause
@@ -124,5 +124,5 @@ if exist "requirements.txt" (
 
 :: ── 6. Launch ──────────────────────────────────────────────────
 echo [INFO] Starting WeatherSnake...
-start "" .venv\Scripts\pythonw.exe "!APP_DIR!ui_app.pyw"
+start "" .venv\Scripts\pythonw.exe "%APP_DIR%ui_app.pyw"
 exit /b 0
