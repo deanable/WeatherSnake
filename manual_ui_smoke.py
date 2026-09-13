@@ -151,15 +151,13 @@ check("timeline hidden after successful fetch",
       app.timeline.winfo_manager() != "pack")
 check("no tk callback errors after Summer fetch", not tk_errors, "; ".join(tk_errors[:3]))
 
-insights_widget = app.insights_text
-check("insights panel populated", insights_widget is not None)
-if insights_widget:
-    text = insights_widget.get("1.0", "end").strip()
-    check("insights text has content", len(text) > 50)
-    styled = any("hdr" in t for tags in
-                 [insights_widget.tag_names("1.0")] for t in tags)
-    check("insights first line uses header tag or plain insert",
-          isinstance(text, str))
+summary_widget = app.conditions_text
+check("analysis summary margin populated", summary_widget is not None)
+if summary_widget:
+    text = summary_widget.get("1.0", "end").strip()
+    check("analysis summary has content", len(text) > 50, f"chars={len(text)}")
+    check("summary shows climate highlights and insights output",
+          "Mean temperature" in text and len(text) > 50)
 
 # ── Fake fetch: Month (the previously crashing path) ──────────────────────
 app.period_var.set("Month")

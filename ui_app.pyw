@@ -1,4 +1,4 @@
-"""WeatherSnake GUI — weather-appropriate visual theme.
+"""WeatherSnake GUI — Wizard-style multi-step interface.
 
 Visual identity:
   Palette: deep ocean ink (#1A2332), warm/cool temperature tones (#E67E22 / #3B82F6),
@@ -8,10 +8,11 @@ Visual identity:
   Signature: a temperature range bar that maps the analysed min/max onto a
   fixed -15 °C … +40 °C blue→orange gradient while data loads.
 
-Layout: one controls panel on top (header row, conditional selectors row,
-status row) and a data-table + chart + insights area below. All functionality
-from earlier versions is preserved: F1 help, Ctrl+R/S/E shortcuts, settings
-persistence, Datawrapper/QuickChart export, insights panel.
+Layout: 4-step wizard (Location → Time → Weather Options → Output) with a
+left step sidebar, an app bar (logo · version · Settings · ?) and a bottom
+status bar; each step screen shows an eyebrow/title/blurb header plus a
+progress strip, and the Output step reveals the results panels (data table,
+chart, insights) and export buttons after fetching.
 """
 
 import logging
@@ -75,6 +76,232 @@ def _settings_path() -> str:
 
 
 SETTINGS_FILE = _settings_path()
+
+
+# ── Datawrapper API token persistence (OS keychain / registry) ──────────────
+try:
+    import winreg
+
+    _REG_PATH = "SOFTWARE\\WeatherSnake"
+    _REG_VALUE = "DatawrapperToken"
+
+
+    def _write_api_token(token: str) -> None:
+        """Persist the Datawrapper token under HKCU so the user is not prompted again."""
+        try:
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, _REG_PATH)
+            winreg.SetValueEx(key, _REG_VALUE, 0, winreg.REG_SZ, token)
+            winreg.CloseKey(key)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Could not write Datawrapper token to registry: %s", exc)
+
+
+    def _read_api_token() -> str:
+        """Return the stored Datawrapper token, or an empty string."""
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, _REG_PATH)
+            value, _ = winreg.QueryValueEx(key, _REG_VALUE)
+            winreg.CloseKey(key)
+            return value or ""
+        except FileNotFoundError:
+            return ""
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Could not read Datawrapper token from registry: %s", exc)
+            return ""
+
+
+    def _open_api_key_site() -> None:
+        """Open the Datawrapper settings page in the default browser."""
+        webbrowser.open("https://app.datawrapper.de/settings/account")
+
+
+except ImportError:
+    # macOS / non-Windows: prefer the OS keychain (macOS Keychain / Linux
+    # Secret Service) via `keyring`, falling back to a private dotfile.
+    import base64
+    import json
+
+    _TOKEN_PATH = os.path.join(
+        os.path.expanduser("~"), ".weathersnake", "datawrapper_token.json"
+    )
+
+    try:
+        import keyring as _keyring
+
+        _KEYCHAIN = _keyring
+    except Exception:  # noqa: BLE001  (missing package or broken backend)
+        _KEYCHAIN = None
+
+
+    def _write_api_token(token: str) -> None:
+        """Persist the Datawrapper token in the OS keychain or a dotfile."""
+        wrote = False
+        if _KEYCHAIN is not None:
+            try:
+                _KEYCHAIN.set_password("WeatherSnake", "DatawrapperToken", token)
+                wrote = True
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Keychain write failed; using dotfile: %s", exc)
+        if not wrote:
+            try:
+                os.makedirs(os.path.dirname(_TOKEN_PATH), exist_ok=True)
+                payload = {
+                    "token": base64.b64encode(token.encode("utf-8")).decode("ascii"),
+                    "created": datetime.now().isoformat(),
+                }
+                with open(_TOKEN_PATH, "w", encoding="utf-8") as handle:
+                    json.dump(payload, handle, indent=2)
+                logger.debug("Wrote Datawrapper token to %s", _TOKEN_PATH)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Could not write Datawrapper token to disk: %s", exc)
+
+
+    def _read_api_token() -> str:
+        """Return the stored Datawrapper token, or an empty string."""
+        if _KEYCHAIN is not None:
+            try:
+                value = _KEYCHAIN.get_password("WeatherSnake", "DatawrapperToken")
+                if value:
+                    return value
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Keychain read failed; trying dotfile: %s", exc)
+        try:
+            with open(_TOKEN_PATH, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+            return base64.b64decode(payload["token"].encode("ascii")).decode("utf-8") or ""
+        except FileNotFoundError:
+            return ""
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Could not read Datawrapper token from disk: %s", exc)
+            return ""
+
+
+    def _open_api_key_site() -> None:
+        """Open the Datawrapper settings page in the default browser."""
+        webbrowser.open("https://app.datawrapper.de/settings/account")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  Wizard step definitions
+# ══════════════════════════════════════════════════════════════════════════
+WIZARD_STEPS = [
+    {"title": "Location", "subtitle": "Where are you analysing?",
+     "blurb": "Select a preset location or enter custom coordinates."},
+    {"title": "Time Period", "subtitle": "When do you want data for?",
+     "blurb": "Choose a season, full year, month, or custom date range."},
+    {"title": "Weather Options", "subtitle": "Customise your analysis",
+     "blurb": "Choose which metrics and reports to generate."},
+    {"title": "Output", "subtitle": "Review and export your results",
+     "blurb": "Fetch data to generate the chart and analysis."},
+]
+
+
+class WizardProgress(tk.Canvas):
+    """Horizontal step progress indicator for the wizard.
+
+    Shows numbered circles connected by lines; completed steps are filled,
+    the current step has a pulsing ring, future steps are muted.
+    """
+
+    _HEIGHT = 70
+
+    def __init__(self, parent, **kw):
+        super().__init__(parent, height=self._HEIGHT, bg=C["bg_light"],
+                         highlightthickness=0)
+        self._current_step = 0
+        self._completed_steps = set()
+        self._pulse = 0.0
+        self._after_id = None
+
+    def set_step(self, step, completed=()):
+        """Update which step is active and which are completed."""
+        self._current_step = step
+        self._completed_steps = set(completed)
+        self._draw()
+
+    def start_pulse(self):
+        self._pulse = 0.0
+        self._schedule(600)
+
+    def stop_pulse(self):
+        if self._after_id:
+            self.after_cancel(self._after_id)
+            self._after_id = None
+
+    def _schedule(self, delay_ms):
+        if self._after_id:
+            self.after_cancel(self._after_id)
+        self._after_id = self.after(delay_ms, self._pulse_draw)
+
+    def _pulse_draw(self):
+        self._after_id = None
+        self._pulse = (self._pulse + 1) % 4
+        self._draw()
+        if self._pulse > 0:
+            self._schedule(600)
+
+    def _draw(self):
+        self.delete("all")
+        w, h = self.winfo_width(), self.winfo_height()
+        if w < 200:
+            return
+
+        n = len(WIZARD_STEPS)
+        circle_r = 16
+        total_w = n * 2 * circle_r + (n - 1) * 30
+        gap = max(30, (w - 40 - total_w) // (n - 1)) if n > 1 else 0
+        start_x = (w - (total_w + (n - 1) * gap)) // 2
+
+        for i, step in enumerate(WIZARD_STEPS):
+            cx = start_x + i * (2 * circle_r + gap) + circle_r
+            cy = h // 2 - 4
+
+            # Connector line between steps
+            if i > 0:
+                prev_cx = start_x + (i - 1) * (2 * circle_r + gap) + 2 * circle_r + gap // 2
+                if i - 1 in self._completed_steps:
+                    line_color = C["temp_warm"]
+                else:
+                    line_color = C["divider"]
+                self.create_line(prev_cx - circle_r // 2, cy,
+                                 cx - circle_r - circle_r // 2, cy,
+                                 fill=line_color, width=2)
+
+            # Circle
+            if i in self._completed_steps:
+                fill_color = C["temp_warm"]
+                text_color = "#FFFFFF"
+                check = "\u2713"  # checkmark
+            elif i == self._current_step:
+                fill_color = C["surface"]
+                text_color = C["deep_ocean"]
+                check = str(i + 1)
+                # Pulsing ring
+                pulse_r = circle_r + 4 + (3 if self._pulse % 2 == 0 else 0)
+                self.create_oval(cx - pulse_r, cy - pulse_r,
+                                 cx + pulse_r, cy + pulse_r,
+                                 outline=C["temp_warm"], width=2)
+            else:
+                fill_color = C["input_bg"]
+                text_color = C["text_muted"]
+                check = str(i + 1)
+
+            self.create_oval(cx - circle_r, cy - circle_r,
+                             cx + circle_r, cy + circle_r,
+                             fill=fill_color, outline=C["divider"], width=1)
+            self.create_text(cx, cy, text=check,
+                             font=_UI_FONT(11, "bold"), fill=text_color)
+
+            # Step label below
+            label_y = cy + circle_r + 16
+            if i <= self._current_step:
+                lbl_color = C["text_primary"]
+                lbl_weight = "bold"
+            else:
+                lbl_color = C["text_muted"]
+                lbl_weight = "normal"
+            self.create_text(cx, label_y, text=step["title"],
+                             font=_UI_FONT(9, lbl_weight), fill=lbl_color)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -237,6 +464,15 @@ def setup_styles(root):
     style.configure(".", background=C["bg_light"], foreground=C["text_primary"],
                     font=(_UI_FONT_NAME, 10), bordercolor=C["divider"])
 
+    # App bar buttons — small bordered pills (design '.app-bar .controls button')
+    style.configure("AppBar.TButton", padding=(10, 3), font=(_UI_FONT_NAME, 9),
+                    background=C["bg_light"], foreground=C["text_secondary"],
+                    borderwidth=1, relief="solid")
+    style.map("AppBar.TButton",
+              background=[("active", C["surface"])],
+              foreground=[("active", C["temp_cool"]),
+                          ("!disabled", C["text_secondary"])])
+
     # LabelFrame - weather data sections
     style.configure("TLabelFrame", background=C["bg_light"], foreground=C["deep_ocean"],
                     font=(_UI_FONT_NAME, 10, "bold"), relief="flat", borderwidth=1)
@@ -244,43 +480,66 @@ def setup_styles(root):
               background=[("active", "#FFFFFF")],
               foreground=[("active", C["temp_warm"])])
 
-    # Buttons - weather action controls
-    style.configure("TButton", padding=(14, 8), font=(_UI_FONT_NAME, 9, "bold"),
-                    background=C["surface"], foreground=C["text_primary"],
+    # Buttons — export/output row (design '.output-btn')
+    style.configure("TButton", padding=(12, 6), font=(_UI_FONT_NAME, 9, "bold"),
+                    background=C["surface"], foreground=C["text_secondary"],
                     borderwidth=1, relief="solid")
     style.map("TButton",
-              background=[("active", C["temp_cool"])],
-              foreground=[("active", "#FFFFFF"),
-                          ("!disabled", C["text_primary"])])
+              background=[("active", C["hover"])],
+              foreground=[("active", C["temp_cool"]),
+                          ("disabled", C["text_muted"])])
 
-    # Accent button variant - primary weather actions
+    # Accent button variant — primary actions (design '.btn-next' / '.btn-fetch')
     style.configure("Accent.TButton", background=C["temp_warm"], foreground="#FFFFFF",
-                    relief="flat", padding=(16, 10))
+                    relief="flat", borderwidth=0, padding=(18, 8))
     style.map("Accent.TButton",
-              background=[("active", "#D35400")],
-              foreground=[("active", "#FFFFFF")])
+              background=[("active", "#D35400"), ("disabled", C["temp_warm"])],
+              foreground=[("active", "#FFFFFF"), ("disabled", "#FFFFFF")])
+
+    # Wizard navigation buttons (design '.btn-back')
+    style.configure("Wizard.TButton", padding=(14, 8), font=(_UI_FONT_NAME, 9, "bold"),
+                    background=C["surface"], foreground=C["text_secondary"],
+                    borderwidth=1, relief="solid")
+    style.map("Wizard.TButton",
+              background=[("active", C["hover"])],
+              foreground=[("active", C["temp_cool"]),
+                          ("disabled", C["text_muted"])])
 
     # Checkbuttons - weather options
     style.configure("TCheckbutton", background=C["bg_light"], foreground=C["text_primary"],
                     font=(_UI_FONT_NAME, 9))
 
-    # Combobox - data selection
-    style.configure("TCombobox", fieldbackground=C["input_bg"],
-                    arrowcolor=C["deep_ocean"], relief="flat")
-    style.map("TCombobox", fieldbackground=[("readonly", C["input_bg"])])
+    # Combobox — data selection (design '.combobox')
+    style.configure("TCombobox", fieldbackground=C["input_bg"], background=C["surface"],
+                    arrowcolor=C["text_secondary"], relief="solid",
+                    bordercolor=C["divider"], lightcolor=C["divider"],
+                    darkcolor=C["divider"], borderwidth=1, padding=(8, 4))
+    style.map("TCombobox",
+              fieldbackground=[("readonly", C["input_bg"])],
+              bordercolor=[("focus", C["temp_warm"])])
 
-    # Entry / Spinbox - numeric inputs
-    style.configure("TSpinbox", fieldbackground=C["input_bg"], relief="flat")
+    # Entry / Spinbox — numeric inputs (design '.spinbox')
+    style.configure("TSpinbox", fieldbackground=C["input_bg"], background=C["surface"],
+                    relief="solid", bordercolor=C["divider"], padding=(8, 4))
+    style.configure("TEntry", fieldbackground=C["input_bg"],
+                    relief="solid", bordercolor=C["divider"], padding=(8, 4))
 
-    # Treeview - weather data table
+    # Treeview — weather data table (design '.table-scroll')
     style.configure("Treeview", background=C["surface"], foreground=C["text_primary"],
                     fieldbackground=C["surface"], font=(_MONO_FONT_NAME, 9),
-                    rowheight=28, borderwidth=0)
-    style.configure("Treeview.Heading", font=(_UI_FONT_NAME, 9, "bold"),
-                    background=C["deep_ocean"], foreground="#FFFFFF")
+                    rowheight=24, borderwidth=0, relief="flat")
+    style.configure("Treeview.Heading", font=(_MONO_FONT_NAME, 8, "bold"),
+                    background=C["bg_light"], foreground=C["text_muted"],
+                    relief="flat", padding=(6, 6))
+    style.map("Treeview.Heading", background=[("active", C["bg_light"])])
     style.map("Treeview",
               background=[("selected", C["precipitation"])],
               foreground=[("selected", "#FFFFFF")])
+
+    # Scrollbars — slim, cool-blue thumb on a light trough
+    style.configure("Vertical.TScrollbar", background=C["temp_cool"],
+                    troughcolor=C["bg_light"], bordercolor=C["divider"],
+                    arrowcolor=C["text_secondary"], relief="flat")
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -323,18 +582,27 @@ class Tooltip:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  Main application
+#  Main application with wizard layout
 # ══════════════════════════════════════════════════════════════════════════
 class WeatherJuiceApp:
     def __init__(self, root):
         self.root = root
         self.root.title(f"{APP_NAME} v{VERSION}")
-        self.root.geometry("1180x680")
-        self.root.minsize(980, 600)
+        self.root.geometry("1280x780")
+        self.root.minsize(1080, 660)
         self.root.configure(bg=C["bg_light"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         setup_styles(self.root)
+        self.current_step = 0
+        
+        # Initialize month mappings BEFORE loading/apply settings
+        month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        self._month_to_num = {name: i + 1 for i, name in enumerate(month_names)}
+        self._last_days = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
+                           7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+        
         self.create_widgets()
         self.create_menu()
         self.load_settings()
@@ -398,227 +666,230 @@ class WeatherJuiceApp:
         self.on_f1(event)
         return "break"
 
+    # ── Design helpers (panels, option cards, step sidebar) ──────────
+    def _panel(self, parent, title):
+        """Design '.panel': bordered surface card with a small header strip."""
+        outer = tk.Frame(parent, bg=C["surface"],
+                         highlightbackground=C["divider"], highlightthickness=1)
+        header = tk.Label(outer, text=title, bg=C["surface"], fg=C["text_secondary"],
+                          font=_UI_FONT(9, "bold"), anchor="w", padx=14, pady=9)
+        header.pack(side=tk.TOP, fill=tk.X)
+        tk.Frame(outer, bg=C["divider"], height=1).pack(side=tk.TOP, fill=tk.X)
+        body = tk.Frame(outer, bg=C["surface"])
+        body.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        return outer, body, header
+
+    def _option_card_frame(self, parent):
+        """Design '.checkbox-group .option': bordered light card row."""
+        card = tk.Frame(parent, bg=C["bg_light"],
+                        highlightbackground=C["divider"], highlightthickness=1)
+        card.pack(side=tk.TOP, fill=tk.X, pady=2)
+        return card
+
+    def _option_card(self, parent, text, variable):
+        """One option card containing a single checkbutton."""
+        card = self._option_card_frame(parent)
+        cb = ttk.Checkbutton(card, text=text, variable=variable)
+        cb.pack(side=tk.LEFT, anchor="w", padx=10, pady=6)
+        return cb
+
+    def _build_sidebar(self, parent):
+        """Left step navigation — clickable list of wizard steps."""
+        sidebar = tk.Frame(parent, bg=C["surface"], width=200,
+                           highlightbackground=C["divider"], highlightthickness=1)
+        sidebar.pack(side=tk.LEFT, fill=tk.Y)
+        sidebar.pack_propagate(False)
+        inner = tk.Frame(sidebar, bg=C["surface"])
+        inner.pack(side=tk.TOP, fill=tk.X, padx=12, pady=20)
+
+        self._sidebar_items = []
+        for i, step_def in enumerate(WIZARD_STEPS):
+            item = tk.Label(inner, text=f"{i + 1}.  {step_def['title']}",
+                            bg=C["surface"], fg=C["text_secondary"],
+                            font=_UI_FONT(9), anchor="w", padx=10, pady=8,
+                            cursor="hand2")
+            item.pack(side=tk.TOP, fill=tk.X, pady=2)
+            item._step_index = i
+            item.bind("<Button-1>", lambda _e, idx=i: self._go_step(idx))
+            item.bind("<Enter>", self._sidebar_enter)
+            item.bind("<Leave>", self._sidebar_leave)
+            self._sidebar_items.append(item)
+
+    def _sidebar_enter(self, event):
+        item = event.widget
+        if item._step_index != self.current_step:
+            item.config(bg=C["hover"])
+
+    def _sidebar_leave(self, event):
+        item = event.widget
+        if item._step_index != self.current_step:
+            item.config(bg=C["surface"])
+
+    def _paint_sidebar(self, current):
+        """Highlight the active step; design '.step.current' = warm chip."""
+        for item in self._sidebar_items:
+            if item._step_index == current:
+                item.config(bg=C["temp_warm"], fg="#FFFFFF", font=_UI_FONT(9, "bold"))
+            else:
+                item.config(bg=C["surface"], fg=C["text_secondary"], font=_UI_FONT(9))
+
+    def _go_step(self, idx):
+        """Sidebar navigation: jump straight to a step (validate forward jumps)."""
+        if idx == self.current_step:
+            return
+        if idx > self.current_step and not self._validate_current_step():
+            return
+        self._show_step(idx)
+
     # ── Widgets ───────────────────────────────────────────────────────
     def create_widgets(self):
-        # ── Top: controls ────────────────────────────────────────────
-        ctrl = ttk.LabelFrame(self.root, text="  Weather Controls  ", padding="12 10")
-        ctrl.pack(side=tk.TOP, fill=tk.X, padx=12, pady=(10, 4))
+        # ── App bar (top chrome) ──────────────────────────────────────
+        app_bar = tk.Frame(self.root, bg=C["surface"])
+        app_bar.pack(side=tk.TOP, fill=tk.X)
+        app_bar_inner = tk.Frame(app_bar, bg=C["surface"])
+        app_bar_inner.pack(side=tk.TOP, fill=tk.X, padx=16, pady=10)
 
-        # Signature element sits above the controls, inside the same panel.
-        self.timeline = TemperatureTimeline(ctrl)
+        tk.Label(app_bar_inner, text="WeatherSnake", bg=C["surface"],
+                 fg=C["temp_warm"], font=_UI_FONT(12, "bold")).pack(side=tk.LEFT)
+        tk.Label(app_bar_inner, text=f"v{VERSION}", bg=C["surface"],
+                 fg=C["text_muted"], font=_MONO_FONT(8)).pack(side=tk.LEFT,
+                                                              padx=(10, 0))
 
-        # Row 0 — main row (kept on self so the timeline can pack before it)
-        row0 = tk.Frame(ctrl, bg=C["bg_light"])
-        row0.pack(fill=tk.X)
-        self._controls_row0 = row0
+        help_btn = ttk.Button(app_bar_inner, text="?", style="AppBar.TButton", width=3,
+                              command=self.on_f1)
+        help_btn.pack(side=tk.RIGHT)
+        Tooltip(help_btn, "Context help (F1).")
 
-        # Location
-        tk.Label(row0, text="Location:", bg=C["bg_light"], fg=C["text_primary"],
-                 font=_UI_FONT(9, "bold")).pack(in_=row0, side=tk.LEFT, padx=(0, 4))
-        self._location_presets = ["Cape Town", "Johannesburg", "Durban", "Custom..."]
-        self.location_var = tk.StringVar(value="Cape Town")
-        self.location_cb = ttk.Combobox(row0, textvariable=self.location_var,
-                                        values=self._location_presets,
-                                        state="readonly", width=16)
-        self.location_cb.pack(in_=row0, side=tk.LEFT, padx=(0, 8))
-        self.location_cb.bind("<<ComboboxSelected>>", self._on_location_changed)
-        Tooltip(self.location_cb, "Select a preset location or choose 'Custom...'.")
+        settings_btn = ttk.Button(app_bar_inner, text="Settings", style="AppBar.TButton",
+                                  command=lambda: self._go_step(2))
+        settings_btn.pack(side=tk.RIGHT, padx=(0, 8))
+        Tooltip(settings_btn, "Weather options, units and report settings (step 3).")
 
-        self.custom_city_var = tk.StringVar()
-        self.custom_city_entry = ttk.Entry(row0, textvariable=self.custom_city_var, width=20)
-        self.custom_city_entry.bind("<Escape>", self._on_custom_city_escape)
-        self.custom_city_entry.pack_forget()
-        Tooltip(self.custom_city_entry, "Enter any location name recognised by the weather API.")
-
-        self._show_location_widget(self.location_cb)
-
-        # Period
-        tk.Label(row0, text="Period:", bg=C["bg_light"], fg=C["text_primary"],
-                 font=_UI_FONT(9, "bold")).pack(in_=row0, side=tk.LEFT, padx=(12, 4))
-        self.period_var = tk.StringVar(value="Summer")
-        self.period_cb = ttk.Combobox(row0, textvariable=self.period_var,
-                                      values=["Summer", "Autumn", "Winter", "Spring",
-                                              "Full Year", "Month", "Custom Range"],
-                                      state="readonly", width=12)
-        self.period_cb.pack(in_=row0, side=tk.LEFT, padx=(0, 8))
-        self.period_cb.bind("<<ComboboxSelected>>", self._on_period_changed)
-        Tooltip(self.period_cb, "Season, full year, month, or custom day-month range.")
-
-        # Depth
-        tk.Label(row0, text="Depth:", bg=C["bg_light"], fg=C["text_primary"],
-                 font=_UI_FONT(9, "bold")).pack(in_=row0, side=tk.LEFT, padx=(12, 4))
-        self.depth_var = tk.IntVar(value=10)
-        self.depth_cb = ttk.Combobox(row0, textvariable=self.depth_var,
-                                     values=["1", "3", "5", "7", "10", "15", "20"],
-                                     state="readonly", width=5)
-        self.depth_cb.pack(in_=row0, side=tk.LEFT, padx=(0, 8))
-        Tooltip(self.depth_cb, "Years of history to average.")
-
-        # Units
-        tk.Label(row0, text="Units:", bg=C["bg_light"], fg=C["text_primary"],
-                 font=_UI_FONT(9, "bold")).pack(in_=row0, side=tk.LEFT, padx=(12, 4))
-        self.units_var = tk.StringVar(value="metric")
-        self.units_cb = ttk.Combobox(row0, textvariable=self.units_var,
-                                     values=["metric", "imperial"],
-                                     state="readonly", width=9)
-        self.units_cb.pack(in_=row0, side=tk.LEFT, padx=(0, 8))
-        Tooltip(self.units_cb, "Metric = °C / mm; Imperial = °F / inches.")
-
-        # ── Action buttons ──────────────────────────────────────────
-        btn_row = tk.Frame(ctrl, bg=C["bg_light"])
-        btn_row.pack(fill=tk.X, pady=(8, 0))
-
-        self.fetch_btn = ttk.Button(btn_row, text="Fetch Data", command=self.fetch_data_thread,
-                                    style="Accent.TButton")
-        self.fetch_btn.pack(side=tk.LEFT, padx=(0, 6))
-        Tooltip(self.fetch_btn, "Retrieve weather data and regenerate the chart.")
-
-        self.save_btn = ttk.Button(btn_row, text="Save JPG", command=self.save_to_jpg,
-                                   state="disabled")
-        self.save_btn.pack(side=tk.LEFT, padx=(0, 6))
-        Tooltip(self.save_btn, "Save the current chart as JPEG.")
-
-        self.export_csv_btn = ttk.Button(btn_row, text="Export CSV", command=self.export_csv,
-                                         state="disabled")
-        self.export_csv_btn.pack(side=tk.LEFT, padx=(0, 6))
-        Tooltip(self.export_csv_btn, "Export processed data as CSV.")
-
-        self.export_chart_btn = ttk.Button(btn_row, text="Datawrapper", command=self.export_csv_and_chart,
-                                           state="disabled")
-        self.export_chart_btn.pack(side=tk.LEFT, padx=(0, 6))
-        Tooltip(self.export_chart_btn, "Publish an interactive chart via Datawrapper.")
-
-        self.quickchart_btn = ttk.Button(btn_row, text="QuickChart PNG",
-                                         command=self.export_quickchart_png, state="disabled")
-        self.quickchart_btn.pack(side=tk.LEFT, padx=(0, 6))
-        Tooltip(self.quickchart_btn, "Render PNG via QuickChart (no account needed).")
-
-        self.set_api_key_btn = ttk.Button(btn_row, text="Datawrapper Token",
-                                          command=self.set_datawrapper_token)
-        self.set_api_key_btn.pack(side=tk.LEFT, padx=(0, 6))
-        Tooltip(self.set_api_key_btn, "Set / verify your Datawrapper API token.")
-
-        # ── Options row ─────────────────────────────────────────────
-        opt_row = tk.Frame(ctrl, bg=C["bg_light"])
-        opt_row.pack(fill=tk.X, pady=(6, 0))
-
-        self.monthly_var = tk.BooleanVar(value=True)
-        self.monthly_chk = ttk.Checkbutton(opt_row, text="Monthly Average",
-                                           variable=self.monthly_var)
-        self.monthly_chk.pack(side=tk.LEFT, padx=(0, 10))
-        Tooltip(self.monthly_chk, "Show averages per month; otherwise day-of-year.")
-
-        self.unify_var = tk.BooleanVar(value=True)
-        self.unify_chk = ttk.Checkbutton(opt_row, text="Shared Y-Axis",
-                                         variable=self.unify_var)
-        self.unify_chk.pack(side=tk.LEFT, padx=(0, 10))
-        Tooltip(self.unify_chk, "Same Y-axis range for temperature and precipitation.")
-
-        self.insights_var = tk.BooleanVar(value=True)
-        self.insights_chk = ttk.Checkbutton(opt_row, text="Conditions & Extremes",
-                                            variable=self.insights_var)
-        self.insights_chk.pack(side=tk.LEFT, padx=(0, 10))
-        Tooltip(self.insights_chk, "Show most common conditions and ranges/extremes.")
-
-        self.yearly_var = tk.BooleanVar(value=False)
-        self.yearly_chk = ttk.Checkbutton(opt_row, text="Yearly Breakdown",
-                                          variable=self.yearly_var)
-        self.yearly_chk.pack(side=tk.LEFT, padx=(0, 10))
-        Tooltip(self.yearly_chk, "Per-year averages/totals with trend-per-decade.")
-
-        tk.Label(opt_row, text="Min Precip (mm):", bg=C["bg_light"], fg=C["text_secondary"],
-                 font=_UI_FONT(9)).pack(side=tk.LEFT, padx=(12, 2))
-        self.precip_threshold_var = tk.DoubleVar(value=5.0)
-        self.precip_threshold_spin = ttk.Spinbox(opt_row, from_=0, to=50, increment=0.5,
-                                                 textvariable=self.precip_threshold_var, width=6)
-        self.precip_threshold_spin.pack(side=tk.LEFT, padx=(0, 8))
-        Tooltip(self.precip_threshold_spin,
-                "Values below this mm are treated as zero (excludes dew/frost).")
-
-        # ── Row 1: conditional selectors (custom range / month) ─────
-        row1 = tk.Frame(ctrl, bg=C["bg_light"])
-        row1.pack(fill=tk.X, pady=(6, 0))
-
-        month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-        day_values = [str(d) for d in range(1, 32)]
-
-        self._cr_start_label = tk.Label(row1, text="From:", bg=C["bg_light"],
-                                        fg=C["text_primary"], font=_UI_FONT(9))
-        self._cr_start_day = tk.StringVar(value="1")
-        self._cr_start_day_cb = ttk.Combobox(row1, textvariable=self._cr_start_day,
-                                              values=day_values, state="readonly", width=3)
-        self._cr_start_month = tk.StringVar(value="Jan")
-        self._cr_start_month_cb = ttk.Combobox(row1, textvariable=self._cr_start_month,
-                                                values=month_names, state="readonly", width=4)
-
-        self._cr_end_label = tk.Label(row1, text="To:", bg=C["bg_light"],
-                                      fg=C["text_primary"], font=_UI_FONT(9))
-        self._cr_end_day = tk.StringVar(value="31")
-        self._cr_end_day_cb = ttk.Combobox(row1, textvariable=self._cr_end_day,
-                                            values=day_values, state="readonly", width=3)
-        self._cr_end_month = tk.StringVar(value="Mar")
-        self._cr_end_month_cb = ttk.Combobox(row1, textvariable=self._cr_end_month,
-                                              values=month_names, state="readonly", width=4)
-
-        self._custom_range_widgets = [
-            self._cr_start_label, self._cr_start_day_cb, self._cr_start_month_cb,
-            self._cr_end_label, self._cr_end_day_cb, self._cr_end_month_cb,
-        ]
-        for w in self._custom_range_widgets:
-            w.pack_forget()
-
-        self._month_to_num = {name: i + 1 for i, name in enumerate(month_names)}
-        self._last_days = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
-                           7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
-
-        # Month period selector (same row, hidden initially)
-        self._month_label = tk.Label(row1, text="Month:", bg=C["bg_light"],
-                                     fg=C["text_primary"], font=_UI_FONT(9))
-        self._month_select_var = tk.StringVar(value="Jan")
-        self._month_select_cb = ttk.Combobox(row1, textvariable=self._month_select_var,
-                                              values=month_names, state="readonly", width=4)
-        self._month_widgets = [self._month_label, self._month_select_cb]
-        for w in self._month_widgets:
-            w.pack_forget()
-
-        # Status line on its own row so it never overlaps the selectors.
-        status_row = tk.Frame(ctrl, bg=C["bg_light"])
-        status_row.pack(fill=tk.X, pady=(6, 0))
+        # ── Status bar (bottom chrome) ─────────────────────────────────
         self.status_var = tk.StringVar(value="Ready.")
-        self.status_label = tk.Label(status_row, textvariable=self.status_var,
-                                     fg=C["text_secondary"], bg=C["bg_light"],
-                                     font=_UI_FONT(9), anchor="w")
-        self.status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.status_context_var = tk.StringVar(value="Data: Open-Meteo · ERA5 · CC BY 4.0")
+        status_bar = tk.Frame(self.root, bg=C["surface"])
+        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.status_label = tk.Label(status_bar, textvariable=self.status_var,
+                                     fg=C["text_muted"], bg=C["surface"],
+                                     font=_MONO_FONT(8), anchor="w")
+        self.status_label.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=16, pady=5)
+        tk.Label(status_bar, textvariable=self.status_context_var,
+                 fg=C["text_muted"], bg=C["surface"], font=_UI_FONT(8),
+                 anchor="e").pack(side=tk.RIGHT, padx=16, pady=5)
+        tk.Frame(self.root, bg=C["divider"], height=1).pack(side=tk.BOTTOM, fill=tk.X)
 
-        # ── Bottom: data + chart ─────────────────────────────────────
-        content = tk.Frame(self.root, bg=C["bg_light"])
-        content.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=12, pady=(4, 10))
+        # ── Wizard body: step sidebar + step content ──────────────────
+        body = tk.Frame(self.root, bg=C["bg_light"])
+        body.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self._build_sidebar(body)
 
-        # Left: data table
-        self.tree_frame = ttk.Frame(content, width=320)
-        self.tree_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 8))
+        content = tk.Frame(body, bg=C["bg_light"])
+        content.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=24, pady=12)
+
+        # Step header: eyebrow, title, blurb
+        self.eyebrow_label = tk.Label(content, text="", bg=C["bg_light"],
+                                      fg=C["temp_warm"], font=_MONO_FONT(8, "bold"),
+                                      anchor="w")
+        self.eyebrow_label.pack(side=tk.TOP, fill=tk.X)
+        self.step_title_label = tk.Label(content, text="", bg=C["bg_light"],
+                                         fg=C["text_primary"], font=_UI_FONT(15, "bold"),
+                                         anchor="w")
+        self.step_title_label.pack(side=tk.TOP, fill=tk.X, pady=(2, 0))
+        self.step_blurb_label = tk.Label(content, text="", bg=C["bg_light"],
+                                         fg=C["text_muted"], font=_UI_FONT(9),
+                                         anchor="w")
+        self.step_blurb_label.pack(side=tk.TOP, fill=tk.X, pady=(2, 0))
+
+        # Progress indicator
+        self.progress = WizardProgress(content)
+        self.progress.pack(side=tk.TOP, fill=tk.X, pady=(4, 0))
+        self.progress.set_step(0)
+
+        # Step content area
+        self.step_frame = tk.Frame(content, bg=C["bg_light"])
+        self.step_frame.pack(side=tk.TOP, fill=tk.X, pady=(8, 0))
+
+        # Navigation buttons
+        nav_frame = tk.Frame(content, bg=C["bg_light"])
+        nav_frame.pack(side=tk.TOP, fill=tk.X, pady=(4, 0))
+
+        self.back_btn = ttk.Button(nav_frame, text="Back", command=self._go_back,
+                                    style="Wizard.TButton", state="disabled")
+        self.back_btn.pack(side=tk.LEFT, padx=(0, 8))
+        Tooltip(self.back_btn, "Go back to the previous step.")
+
+        self.next_btn = ttk.Button(nav_frame, text="Next", command=self._go_next,
+                                    style="Accent.TButton")
+        self.next_btn.pack(side=tk.LEFT, padx=(0, 8))
+        Tooltip(self.next_btn, "Continue to the next step.")
+
+        self.fetch_btn = ttk.Button(nav_frame, text="Fetch Data", command=self.fetch_data_thread,
+                                     style="Accent.TButton")
+        # Don't pack initially - only show on the last step
+        Tooltip(self.fetch_btn, "Retrieve weather data and generate the chart.")
+
+        # Temperature timeline (transient — shown during fetch)
+        self.timeline = TemperatureTimeline(content)
+
+        # ── Results area (Output step, after a fetch) ─────────────────
+        self.results_frame = tk.Frame(content, bg=C["bg_light"])
+
+        # Left: data table panel
+        table_panel, table_body, _ = self._panel(self.results_frame, "Data")
+        table_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 8))
+        table_panel.configure(width=320)
+        table_panel.pack_propagate(False)
 
         columns = ("Date", "Max Temp", "Min Temp", "Precip")
-        self.tree = ttk.Treeview(self.tree_frame, columns=columns, show="headings", height=16)
+        self.tree = ttk.Treeview(table_body, columns=columns, show="headings", height=16)
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=76, anchor=tk.CENTER)
-
-        tree_scroll = ttk.Scrollbar(self.tree_frame, orient="vertical", command=self.tree.yview)
+            self.tree.column(col, width=72, anchor=tk.CENTER)
+        tree_scroll = ttk.Scrollbar(table_body, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=tree_scroll.set)
-        self.tree.pack(side=tk.LEFT, fill=tk.Y, expand=True)
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Right: chart canvas
-        self.canvas_frame = ttk.Frame(content)
-        self.canvas_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # Right: analysis summary panel (sits beside the chart)
+        self.conditions_frame, conditions_body, _ = self._panel(
+            self.results_frame, "Analysis Summary")
+        self.conditions_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(8, 0))
+        self.conditions_frame.configure(width=320)
+        self.conditions_frame.pack_propagate(False)
+        self.conditions_text = tk.Text(
+            conditions_body, wrap=tk.WORD, state=tk.DISABLED,
+            bg=C["surface"], fg=C["text_primary"],
+            font=_MONO_FONT(9), padx=10, pady=6, width=34,
+            relief="flat", highlightthickness=0,
+        )
+        self.conditions_text.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        conditions_scroll = ttk.Scrollbar(
+            conditions_body, orient="vertical", command=self.conditions_text.yview)
+        self.conditions_text.configure(yscrollcommand=conditions_scroll.set)
+        conditions_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Middle: chart panel (canvas mounts here after a fetch)
+        chart_panel, self.canvas_frame, self.chart_title = self._panel(
+            self.results_frame, "Chart")
+        chart_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.canvas_widget = None
         self.current_fig = None
 
-        # ── Context-sensitive help registration ──────────────────────
-        register_help(self.root, CTX["root"])
+        # Export buttons live in the Output step frame (out_frame); the
+        # results panels above are revealed after a successful fetch.
+
+        # Build step content
+        self._build_step_widgets()
+
+        # Help registration must happen after every button callback target
+        # exists, because `register_help` pokes the widget tree and the
+        # export command objects are created in `_build_step_widgets`.
+        # Defer the export callback references until after _build_step_widgets()
+        # has created them, because register_help pokes the widget and that can
+        # trigger command lookups before the lazy-defined methods exist.
+        self._deferred_help = [(self.root, CTX["root"])]
         register_help(self.location_cb, CTX["location"])
         register_help(self.custom_city_entry, CTX["location"])
         register_help(self.period_cb, CTX["period"])
@@ -631,27 +902,485 @@ class WeatherJuiceApp:
         register_help(self.yearly_chk, CTX["yearly"])
         register_help(self.fetch_btn, CTX["fetch"])
         register_help(self.save_btn, CTX["save"])
-        register_help(self.export_csv_btn, CTX["export_csv"])
+        self._deferred_help.append((self.export_csv_btn, CTX["export_csv"]))
         register_help(self.export_chart_btn, CTX["chart_export"])
         register_help(self.quickchart_btn, CTX["quickchart"])
         register_help(self.set_api_key_btn, CTX["chart_token"])
-        for w in self._custom_range_widgets:
+        register_help(self.conditions_text, CTX["results"])
+        for w in getattr(self, "_custom_range_widgets", []):
             register_help(w, CTX["period"])
-        for w in self._month_widgets:
+        for w in getattr(self, "_month_widgets", []):
             register_help(w, CTX["period"])
         register_help(self.tree, CTX["results"])
         register_help(self.canvas_frame, CTX["results"])
+        register_help(self.conditions_frame, CTX["results"])
+        register_help(self.conditions_text, CTX["results"])
+        for w in getattr(self, "_custom_range_widgets", []):
+            register_help(w, CTX["period"])
+        for w in getattr(self, "_month_widgets", []):
+            register_help(w, CTX["period"])
+        # Register the late-bound export callback references once the step 4
+        # buttons have been created in _build_step_widgets.
+        self._deferred_help.extend([
+            (self.location_cb, CTX["location"]),
+            (self.custom_city_entry, CTX["location"]),
+            (self.period_cb, CTX["period"]),
+            (self.depth_cb, CTX["depth"]),
+            (self.units_cb, CTX["units"]),
+            (self.monthly_chk, CTX["monthly"]),
+            (self.unify_chk, CTX["unify"]),
+            (self.precip_threshold_spin, CTX["precip_threshold"]),
+            (self.insights_chk, CTX["insights"]),
+            (self.yearly_chk, CTX["yearly"]),
+            (self.fetch_btn, CTX["fetch"]),
+            (self.save_btn, CTX["save"]),
+            (self.export_csv_btn, CTX["export_csv"]),
+            (self.export_chart_btn, CTX["chart_export"]),
+            (self.quickchart_btn, CTX["quickchart"]),
+            (self.set_api_key_btn, CTX["chart_token"]),
+            (self.tree, CTX["results"]),
+            (self.canvas_frame, CTX["results"]),
+            (self.conditions_frame, CTX["results"]),
+            (self.conditions_text, CTX["results"]),
+        ])
+        for target, context_id in self._deferred_help:
+            register_help(target, context_id)
 
         # Insights panel
-        self.insights_text = None
-        self._insights_scroll = None
+        # Show first step
+        self._show_step(0)
+
+    def _build_step_widgets(self):
+        """Create all widgets needed across steps (hidden by default)."""
+        # ── Step 1: Location ─────────────────────────────────────────
+        loc_frame = tk.Frame(self.step_frame, bg=C["bg_light"])
+        loc_frame.pack(fill=tk.X, pady=8)
+
+        tk.Label(loc_frame, text="Location:", bg=C["bg_light"], fg=C["text_primary"],
+                 font=_UI_FONT(11, "bold")).pack(side=tk.LEFT, padx=(0, 8))
+
+        self._location_presets = ["Cape Town", "Johannesburg", "Durban", "Custom..."]
+        self.location_var = tk.StringVar(value="Cape Town")
+        self.location_cb = ttk.Combobox(loc_frame, textvariable=self.location_var,
+                                        values=self._location_presets,
+                                        state="readonly", width=18)
+        self.location_cb.pack(side=tk.LEFT, padx=(0, 12))
+        self.location_cb.bind("<<ComboboxSelected>>", self._on_location_changed)
+        Tooltip(self.location_cb, "Select a preset location or choose 'Custom...'.")
+
+        self.custom_city_var = tk.StringVar()
+        self.custom_city_entry = ttk.Entry(loc_frame, textvariable=self.custom_city_var, width=24)
+        self.custom_city_entry.bind("<Escape>", self._on_custom_city_escape)
+        Tooltip(self.custom_city_entry, "Enter any location name recognised by the weather API.")
+
+        # Info text for step 1
+        self.step1_info = tk.Label(loc_frame, text="",
+                                    bg=C["bg_light"], fg=C["text_secondary"],
+                                    font=_UI_FONT(9), justify=tk.LEFT)
+        self.step1_info.pack(side=tk.LEFT, padx=(12, 0))
+
+        # ── Step 2: Time Period ──────────────────────────────────────
+        time_frame = tk.Frame(self.step_frame, bg=C["bg_light"])
+        time_frame.pack(fill=tk.X, pady=8)
+
+        # Main row with Period, Depth, Units in a horizontal layout
+        main_row = tk.Frame(time_frame, bg=C["bg_light"])
+        main_row.pack(side=tk.TOP, fill=tk.X)
+
+        tk.Label(main_row, text="Period:", bg=C["bg_light"], fg=C["text_primary"],
+                 font=_UI_FONT(11, "bold")).pack(side=tk.LEFT, padx=(0, 4))
+
+        self.period_var = tk.StringVar(value="Summer")
+        self.period_cb = ttk.Combobox(main_row, textvariable=self.period_var,
+                                      values=["Summer", "Autumn", "Winter", "Spring",
+                                              "Full Year", "Month", "Custom Range"],
+                                      state="readonly", width=14)
+        self.period_cb.pack(side=tk.LEFT, padx=(0, 16))
+        self.period_cb.bind("<<ComboboxSelected>>", self._on_period_changed)
+        Tooltip(self.period_cb, "Season, full year, month, or custom day-month range.")
+
+        tk.Label(main_row, text="Depth:", bg=C["bg_light"], fg=C["text_primary"],
+                 font=_UI_FONT(11, "bold")).pack(side=tk.LEFT, padx=(0, 4))
+        self.depth_var = tk.IntVar(value=10)
+        self.depth_cb = ttk.Combobox(main_row, textvariable=self.depth_var,
+                                     values=["1", "3", "5", "7", "10", "15", "20"],
+                                     state="readonly", width=5)
+        self.depth_cb.pack(side=tk.LEFT, padx=(0, 16))
+        Tooltip(self.depth_cb, "Years of history to average.")
+
+        tk.Label(main_row, text="Units:", bg=C["bg_light"], fg=C["text_primary"],
+                 font=_UI_FONT(11, "bold")).pack(side=tk.LEFT, padx=(0, 4))
+        self.units_var = tk.StringVar(value="metric")
+        self.units_cb = ttk.Combobox(main_row, textvariable=self.units_var,
+                                     values=["metric", "imperial"],
+                                     state="readonly", width=10)
+        self.units_cb.pack(side=tk.LEFT, padx=(0, 12))
+        Tooltip(self.units_cb, "Metric = °C / mm; Imperial = °F / inches.")
+
+        # Conditional selectors frame (hidden by default, shown on same row when needed)
+        self._conditional_frame = tk.Frame(time_frame, bg=C["bg_light"])
+        
+        self._cr_start_label = tk.Label(self._conditional_frame, text="From:", bg=C["bg_light"],
+                                        fg=C["text_primary"], font=_UI_FONT(9))
+        self._cr_start_day = tk.StringVar(value="1")
+        self._cr_start_day_cb = ttk.Combobox(self._conditional_frame, textvariable=self._cr_start_day,
+                                              values=[str(d) for d in range(1, 32)],
+                                              state="readonly", width=3)
+        self._cr_start_month = tk.StringVar(value="Jan")
+        self._cr_start_month_cb = ttk.Combobox(self._conditional_frame, textvariable=self._cr_start_month,
+                                                values=["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                                                state="readonly", width=4)
+
+        self._cr_end_label = tk.Label(self._conditional_frame, text="To:", bg=C["bg_light"],
+                                      fg=C["text_primary"], font=_UI_FONT(9))
+        self._cr_end_day = tk.StringVar(value="31")
+        self._cr_end_day_cb = ttk.Combobox(self._conditional_frame, textvariable=self._cr_end_day,
+                                            values=[str(d) for d in range(1, 32)],
+                                            state="readonly", width=3)
+        self._cr_end_month = tk.StringVar(value="Mar")
+        self._cr_end_month_cb = ttk.Combobox(self._conditional_frame, textvariable=self._cr_end_month,
+                                              values=["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                                              state="readonly", width=4)
+
+        self._custom_range_widgets = [
+            self._cr_start_label, self._cr_start_day_cb, self._cr_start_month_cb,
+            self._cr_end_label, self._cr_end_day_cb, self._cr_end_month_cb,
+        ]
+        for w in self._custom_range_widgets:
+            w.pack(side=tk.LEFT, padx=(0, 2))
+
+        self._month_label = tk.Label(self._conditional_frame, text="Month:", bg=C["bg_light"],
+                                     fg=C["text_primary"], font=_UI_FONT(9))
+        self._month_select_var = tk.StringVar(value="Jan")
+        self._month_select_cb = ttk.Combobox(self._conditional_frame, textvariable=self._month_select_var,
+                                              values=["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                                              state="readonly", width=4)
+        self._month_widgets = [self._month_label, self._month_select_cb]
+        for w in self._month_widgets:
+            w.pack(side=tk.LEFT, padx=(0, 2))
+
+        # Info text for step 2
+        self.step2_info = tk.Label(time_frame, text="",
+                                    bg=C["bg_light"], fg=C["text_secondary"],
+                                    font=_UI_FONT(9), justify=tk.LEFT)
+        self.step2_info.pack(side=tk.BOTTOM, fill=tk.X, pady=(4, 0))
+
+        # ── Step 3: Weather Options ──────────────────────────────────
+        opt_frame = tk.Frame(self.step_frame, bg=C["bg_light"])
+        opt_frame.pack(fill=tk.X, pady=8)
+
+        # Graph options — bordered option cards (design '.checkbox-group')
+        graph_opts = tk.Frame(opt_frame, bg=C["bg_light"])
+        graph_opts.pack(side=tk.TOP, fill=tk.X, pady=(0, 8))
+
+        self.monthly_var = tk.BooleanVar(value=True)
+        self.monthly_chk = self._option_card(graph_opts, "Monthly Average",
+                                             self.monthly_var)
+        Tooltip(self.monthly_chk, "Show averages per month; otherwise day-of-year.")
+
+        self.unify_var = tk.BooleanVar(value=True)
+        self.unify_chk = self._option_card(graph_opts, "Shared Y-Axis",
+                                           self.unify_var)
+        Tooltip(self.unify_chk, "Same Y-axis range for temperature and precipitation.")
+
+        # Minimum precipitation threshold — an option card with an inline spinbox.
+        self.precip_threshold_var = tk.DoubleVar(value=5.0)
+        precip_card = self._option_card_frame(graph_opts)
+        self.precip_threshold_spin = ttk.Spinbox(
+            precip_card, from_=0, to=50, increment=0.5,
+            textvariable=self.precip_threshold_var, width=6)
+        self.precip_threshold_spin.pack(side=tk.RIGHT, padx=10, pady=6)
+        tk.Label(precip_card, text="Minimum precipitation (mm):", bg=C["bg_light"],
+                 fg=C["text_secondary"], font=_UI_FONT(9)).pack(side=tk.RIGHT,
+                                                                padx=(0, 8))
+        Tooltip(self.precip_threshold_spin,
+                "Minimum precipitation on the chart: values below this mm are "
+                "treated as zero (excludes dew/frost).")
+
+        # Reporting options — bordered option cards.
+        report_opts = tk.Frame(opt_frame, bg=C["bg_light"])
+        report_opts.pack(side=tk.TOP, fill=tk.X)
+
+        self.insights_var = tk.BooleanVar(value=True)
+        self.insights_chk = self._option_card(report_opts, "Conditions & Extremes",
+                                              self.insights_var)
+        Tooltip(self.insights_chk, "Show most common conditions and ranges/extremes.")
+
+        self.yearly_var = tk.BooleanVar(value=False)
+        self.yearly_chk = self._option_card(report_opts, "Yearly Breakdown",
+                                            self.yearly_var)
+        Tooltip(self.yearly_chk, "Per-year averages/totals with trend-per-decade.")
+
+        # Info text for step 3
+        self.step3_info = tk.Label(opt_frame, text="",
+                                    bg=C["bg_light"], fg=C["text_secondary"],
+                                    font=_UI_FONT(9), justify=tk.LEFT)
+        self.step3_info.pack(side=tk.TOP, fill=tk.X, pady=(8, 0))
+
+        # ── Step 4: Output ───────────────────────────────────────────
+        out_frame = tk.Frame(self.step_frame, bg=C["bg_light"])
+        out_frame.pack(fill=tk.X, pady=8)
+
+        # Export buttons (design '.output-buttons'); the results panels
+        # below are revealed only after a successful fetch.
+        self.save_btn = ttk.Button(out_frame, text="Save JPG", command=self.save_to_jpg,
+                                   state="disabled")
+        self.save_btn.pack(side=tk.LEFT, padx=(0, 8))
+        Tooltip(self.save_btn, "Save the current chart as JPEG.")
+
+        self.export_csv_btn = ttk.Button(out_frame, text="Export CSV", command=self.export_csv,
+                                         state="disabled")
+        self.export_csv_btn.pack(side=tk.LEFT, padx=(0, 8))
+        Tooltip(self.export_csv_btn, "Export processed data as CSV.")
+
+        self.export_chart_btn = ttk.Button(out_frame, text="Datawrapper", command=self.export_csv_and_chart,
+                                           state="disabled")
+        self.export_chart_btn.pack(side=tk.LEFT, padx=(0, 8))
+        Tooltip(self.export_chart_btn, "Publish an interactive chart via Datawrapper.")
+
+        self.quickchart_btn = ttk.Button(out_frame, text="QuickChart PNG",
+                                         command=self.export_quickchart_png, state="disabled")
+        self.quickchart_btn.pack(side=tk.LEFT, padx=(0, 8))
+        Tooltip(self.quickchart_btn, "Render PNG via QuickChart (no account needed).")
+
+        self.set_api_key_btn = ttk.Button(out_frame, text="Datawrapper Token",
+                                          command=self.set_datawrapper_token)
+        self.set_api_key_btn.pack(side=tk.LEFT, padx=(0, 8))
+        Tooltip(self.set_api_key_btn, "Set / verify your Datawrapper API token.")
+
+        # Summary info for step 4
+        self.step4_info = tk.Label(out_frame, text="",
+                                    bg=C["bg_light"], fg=C["text_secondary"],
+                                    font=_UI_FONT(9), justify=tk.LEFT)
+        self.step4_info.pack(side=tk.LEFT, padx=(24, 0), fill=tk.X, expand=True)
+
+        # Store references to all step frames for showing/hiding
+        self._step_widgets = {
+            0: {"frame": loc_frame, "info": self.step1_info},
+            1: {"frame": time_frame, "info": self.step2_info},
+            2: {"frame": opt_frame, "info": self.step3_info},
+            3: {"frame": out_frame, "info": self.step4_info},
+        }
+
+    def _show_step(self, step, animate=False):
+        """Show the given step's widgets and update navigation.
+        
+        Args:
+            step: The step index to show (0-3)
+            animate: If True, apply fade/slide animation (disabled by default)
+        """
+        # Hide all step content immediately (animations disabled for reliability)
+        for s, widgets in self._step_widgets.items():
+            widgets["frame"].pack_forget()
+
+        # Show current step
+        current = self._step_widgets[step]
+        current["frame"].pack(fill=tk.X, pady=8)
+
+        # Design header: eyebrow (subtitle, uppercase) + title + blurb
+        step_def = WIZARD_STEPS[step]
+        self.eyebrow_label.config(text=step_def["subtitle"].upper())
+        self.step_title_label.config(text=f"{step + 1}. {step_def['title']}")
+        self.step_blurb_label.config(text=step_def["blurb"])
+
+        # Sidebar highlight + progress strip
+        self._paint_sidebar(step)
+        completed = list(range(step))
+        self.progress.set_step(step, completed)
+        if step == self.current_step:
+            self.progress.start_pulse()
+        else:
+            self.progress.stop_pulse()
+            self.progress.start_pulse()
+
+        # Output step extras: results panels appear once data has been fetched
+        has_results = getattr(self, "_last_df", None) is not None
+        if step == len(WIZARD_STEPS) - 1 and has_results:
+            self.results_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=(12, 0))
+        else:
+            self.results_frame.pack_forget()
+
+        # Update navigation buttons
+        self.back_btn.config(state="normal" if step > 0 else "disabled")
+        if step == len(WIZARD_STEPS) - 1:
+            self.next_btn.config(state="disabled")
+            self.fetch_btn.config(state="normal")
+            self.next_btn.pack_forget()
+            self.fetch_btn.pack(side=tk.LEFT, padx=(0, 8))
+        else:
+            self.next_btn.config(state="normal")
+            self.fetch_btn.pack_forget()
+            self.next_btn.pack(side=tk.LEFT, padx=(0, 8))
+
+        # Update info text for each step
+        self._update_step_info(step)
+
+        self.current_step = step
+
+    def _fade_out_step(self, callback=None):
+        """Fade out the current step frame with a slide-up effect.
+        
+        Since Tkinter doesn't support true opacity, we simulate the effect
+        by hiding child widgets sequentially and applying a visual transition.
+        """
+        if not hasattr(self, '_current_step_frame'):
+            if callback:
+                callback()
+            return
+        
+        frame = self._current_step_frame
+        if not hasattr(frame, '_slide_after_id'):
+            frame._slide_after_id = None
+        
+        # Store initial position
+        if not hasattr(frame, '_slide_pos'):
+            frame._slide_pos = 0
+        
+        # Get the number of child widgets to animate
+        children = list(frame.winfo_children())
+        total_children = len(children)
+        
+        def slide_up_and_fade(step=0):
+            if step < total_children:
+                # Hide one widget at a time for sequential effect
+                if step < total_children:
+                    child = children[step]
+                    child.pack_forget()
+                frame._slide_after_id = frame.after(40, lambda: slide_up_and_fade(step + 1))
+            else:
+                # All children hidden, now hide the frame itself
+                frame.pack_forget()
+                self._current_step_frame = None
+                if hasattr(frame, '_slide_after_id'):
+                    frame.after_cancel(frame._slide_after_id)
+                    frame._slide_after_id = None
+                if callback:
+                    callback()
+        
+        if frame._slide_after_id:
+            frame.after_cancel(frame._slide_after_id)
+        slide_up_and_fade()
+
+    def _fade_in_step(self, frame, callback=None):
+        """Fade in a step frame with a slide-up entrance effect.
+        
+        Shows widgets sequentially with a slight delay for a cascading effect.
+        """
+        if not hasattr(frame, '_slide_after_id'):
+            frame._slide_after_id = None
+        
+        # Pack the frame first
+        frame.pack(fill=tk.X, pady=8)
+        
+        # Get child widgets and show them in sequence
+        children = list(frame.winfo_children())
+        
+        def cascade_show(step=0):
+            if step < len(children):
+                child = children[step]
+                child.pack_configure()  # Make visible
+                child.update_idletasks()
+                frame._slide_after_id = frame.after(30, lambda: cascade_show(step + 1))
+            else:
+                if hasattr(frame, '_slide_after_id'):
+                    frame.after_cancel(frame._slide_after_id)
+                    frame._slide_after_id = None
+                if callback:
+                    callback()
+        
+        # Start with frame visible but children hidden, then cascade in
+        for child in children:
+            child.pack_forget()
+        
+        frame._slide_after_id = frame.after(50, lambda: cascade_show(0))
+
+    def _validate_current_step(self):
+        """Validate required fields on the current step.
+        
+        Returns True if valid, False if there's an error.
+        Shows an error message if validation fails.
+        """
+        step = self.current_step
+        
+        if step == 0:
+            # Step 1: Location - validate custom city if selected
+            if self.location_var.get() == "Custom...":
+                city = self.custom_city_var.get().strip()
+                if not city:
+                    messagebox.showwarning(
+                        "Location Required",
+                        "Please enter a city name for your custom location.",
+                        parent=self.root
+                    )
+                    self.custom_city_entry.focus_set()
+                    return False
+        
+        elif step == 1:
+            # Step 2: Time Period - validate custom range if selected
+            if self.period_var.get() == "Custom Range":
+                # Basic validation - the date pickers have defaults so this
+                # is more about ensuring the user has noticed them
+                pass
+        
+        # Steps 2 and 3 have no required fields (all optional toggles)
+        
+        return True
+
+    def _update_step_info(self, step):
+        """Update the info text for the current step."""
+        if step == 0:
+            city = self._get_city()
+            if city:
+                self.step1_info.config(text=f"Analysing: {city}")
+            else:
+                self.step1_info.config(text="Select a location to begin")
+        elif step == 1:
+            period = self.period_var.get()
+            depth = self.depth_var.get()
+            units = self.units_var.get()
+            unit_label = "°C / mm" if units == "metric" else "°F / inches"
+            self.step2_info.config(text=f"Period: {period} | Depth: {depth} years | Units: {unit_label}")
+        elif step == 2:
+            options = []
+            if self.monthly_var.get():
+                options.append("Monthly")
+            if self.unify_var.get():
+                options.append("Shared Y-Axis")
+            if self.insights_var.get():
+                options.append("Conditions")
+            if self.yearly_var.get():
+                options.append("Yearly")
+            precip = self.precip_threshold_var.get()
+            opt_text = ", ".join(options) if options else "None"
+            self.step3_info.config(text=f"Options: {opt_text} | Min Precip: {precip} mm")
+        elif step == 3:
+            if hasattr(self, '_last_city') and hasattr(self, '_last_period'):
+                self.step4_info.config(text=f"Last analysis: {self._last_city} — {self._last_period}")
+            else:
+                self.step4_info.config(text="Fetch data to see results and export options")
 
     # ── Event handlers ────────────────────────────────────────────────
+    def _go_next(self):
+        """Advance to next step, with validation for required fields."""
+        # Validate current step before advancing
+        if not self._validate_current_step():
+            return
+        
+        if self.current_step < len(WIZARD_STEPS) - 1:
+            self._show_step(self.current_step + 1)
+
+    def _go_back(self):
+        """Go back to previous step (no validation needed)."""
+        if self.current_step > 0:
+            self._show_step(self.current_step - 1)
+
     def _show_location_widget(self, widget):
-        """Pack the location combobox or custom entry in its slot (same geometry
-        options every time, so the widget never gets reparented out of row0)."""
+        """Pack the location combobox or custom entry in its slot."""
         widget.pack_forget()
-        widget.pack(in_=widget.master, side=tk.LEFT, padx=(0, 8))
+        widget.pack(side=tk.LEFT, padx=(0, 12))
 
     def _on_location_changed(self, event=None):
         if self.location_var.get() == "Custom...":
@@ -661,30 +1390,38 @@ class WeatherJuiceApp:
         else:
             self._show_location_widget(self.location_cb)
             self.custom_city_entry.pack_forget()
+        self._update_step_info(self.current_step)
 
     def _on_custom_city_escape(self, event=None):
         self.custom_city_entry.pack_forget()
         self.location_var.set(self._location_presets[0])
         self._show_location_widget(self.location_cb)
+        self._update_step_info(self.current_step)
 
     def _on_period_changed(self, event=None):
         period = self.period_var.get()
+
+        # Reset both selector groups, then show whichever applies.
         for w in self._custom_range_widgets:
             w.pack_forget()
         for w in self._month_widgets:
             w.pack_forget()
+        self._conditional_frame.pack_forget()
 
         if period == "Custom Range":
-            # pack in a sub-frame-like row using pack(side=LEFT)
             for w in self._custom_range_widgets:
-                w.pack(side=tk.LEFT, padx=2)
+                w.pack(side=tk.LEFT, padx=(0, 2))
+            self._conditional_frame.pack(side=tk.TOP, fill=tk.X, pady=(4, 0))
             self.monthly_chk.config(state="disabled")
         elif period == "Month":
             for w in self._month_widgets:
-                w.pack(side=tk.LEFT, padx=2)
+                w.pack(side=tk.LEFT, padx=(0, 2))
+            self._conditional_frame.pack(side=tk.TOP, fill=tk.X, pady=(4, 0))
             self.monthly_chk.config(state="disabled")
         else:
             self.monthly_chk.config(state="normal")
+
+        self._update_step_info(self.current_step)
 
     def _get_city(self):
         if self.location_var.get() == "Custom...":
@@ -710,18 +1447,16 @@ class WeatherJuiceApp:
         if self.canvas_widget:
             self.canvas_widget.get_tk_widget().destroy()
             self.canvas_widget = None
-        if self.insights_text is not None:
-            self.insights_text.destroy()
-            self.insights_text = None
-        if getattr(self, "_insights_scroll", None) is not None:
-            self._insights_scroll.destroy()
-            self._insights_scroll = None
         self.current_fig = None
+        # Clear the analysis summary margin too
+        if hasattr(self, "conditions_text"):
+            self.conditions_text.config(state=tk.NORMAL)
+            self.conditions_text.delete("1.0", tk.END)
+            self.conditions_text.config(state=tk.DISABLED)
 
-        # Show the temperature range bar while fetching (inside the controls
-        # panel, directly under the header — never reparented).
+        # Show the temperature range bar while fetching
         self.timeline.pack_forget()
-        self.timeline.pack(side=tk.TOP, fill=tk.X, before=self._controls_row0,
+        self.timeline.pack(side=tk.TOP, fill=tk.X, before=self.step_frame,
                            pady=(6, 0))
         self.timeline.start()
 
@@ -778,9 +1513,7 @@ class WeatherJuiceApp:
             else:
                 sm, sday, em, eday = None, None, None, None
 
-            # Cross-year windows (e.g. Dec–Feb summer, custom 15 Nov – 28 Feb)
-            # need one extra leading year so the earliest occurrence includes
-            # its head month.
+            # Cross-year windows need one extra leading year
             if is_custom or is_month:
                 extra_year = sm > em
             else:
@@ -811,9 +1544,7 @@ class WeatherJuiceApp:
             if processed_df.empty:
                 raise ValueError("No data available for the given timeframe.")
 
-            # Feed the analysed temperature range to the timeline. The engine
-            # returns converted values for imperial; convert back to °C so the
-            # bar's fixed °C scale stays honest in both unit modes.
+            # Feed the analysed temperature range to the timeline
             temp_range_min = processed_df['temp_min'].min()
             temp_range_max = processed_df['temp_max'].max()
             if units == "imperial":
@@ -869,46 +1600,15 @@ class WeatherJuiceApp:
                 f"{row['precip_sum']:.1f} {precip_unit}",
             ))
 
+        self.chart_title.config(
+            text=f"Chart — Historical Weather for {getattr(self, '_last_city', '—')} "
+                 f"({getattr(self, '_last_period', '')})")
         self.canvas_widget = FigureCanvasTkAgg(self.current_fig, master=self.canvas_frame)
         self.canvas_widget.draw()
         self.canvas_widget.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        # Insights panel
-        if self.insights_text is not None:
-            self.insights_text.destroy()
-            self.insights_text = None
-        if getattr(self, "_insights_scroll", None) is not None:
-            self._insights_scroll.destroy()
-            self._insights_scroll = None
-
-        if insights_text:
-            self.insights_text = tk.Text(self.canvas_frame, height=9, wrap=tk.WORD,
-                                         state=tk.NORMAL, relief=tk.FLAT,
-                                         bg="#FFFFFF", fg=C["text_primary"],
-                                         font=_UI_FONT(9), padx=8, pady=6)
-            # Section headers ("Weather Conditions (historical)", "Variability
-            # & Extremes", "Year-over-Year", …) get accent colour + weight.
-            tag_i = 0
-            for line in insights_text.splitlines():
-                stripped = line.strip()
-                if (stripped and not stripped.startswith(("-", " ", "+"))
-                        and not stripped[0].isdigit()):
-                    tag = f"hdr{tag_i}"
-                    tag_i += 1
-                    self.insights_text.insert(tk.END, line + "\n", tag)
-                    self.insights_text.tag_configure(
-                        tag, font=_UI_FONT(9, "bold"),
-                        foreground=C["deep_ocean"],
-                        spacing1=6, spacing3=2)
-                else:
-                    self.insights_text.insert(tk.END, line + "\n")
-            self.insights_text.config(state=tk.DISABLED)
-            scroll = ttk.Scrollbar(self.canvas_frame, orient="vertical",
-                                   command=self.insights_text.yview)
-            self.insights_text.configure(yscrollcommand=scroll.set)
-            self.insights_text.pack(side=tk.TOP, fill=tk.X, padx=4, pady=(4, 0))
-            scroll.pack(side=tk.RIGHT, fill=tk.Y)
-            self._insights_scroll = scroll
+        # Populate the analysis summary margin next to the chart (right-hand side)
+        self._render_conditions_summary(df, units, insights_text)
 
         self.status_var.set("Ready.")
         self.status_label.config(fg=C["text_secondary"])
@@ -917,42 +1617,108 @@ class WeatherJuiceApp:
         self.export_csv_btn.config(state="normal")
         self.export_chart_btn.config(state="normal")
         self.quickchart_btn.config(state="normal")
+
+        # Update step 4 info with results summary
+        if hasattr(self, '_last_city'):
+            self.step4_info.config(text=f"Results: {self._last_city} — {self._last_period} ({self._last_depth} years)")
+
+        # Auto-switch to output step (results panels reveal with it)
+        self._show_step(3)
         self.save_settings()
 
-    # ── CSV export ────────────────────────────────────────────────────
-    def export_csv(self):
-        if not hasattr(self, '_last_city') or not hasattr(self, '_last_period'):
-            messagebox.showwarning("Warning", "No data available — fetch data first.",
-                                   parent=self.root)
+    def _render_conditions_summary(self, df, units, insights_text=""):
+        """Populate the right-hand margin beside the chart.
+
+        Shows a compact climate summary up top, then the full structured
+        output (conditions, variability, year-over-year) below it.
+        """
+        if not hasattr(self, "conditions_text"):
             return
-        try:
-            if not hasattr(self, '_last_df'):
-                messagebox.showwarning("Warning", "No processed data stored — fetch again.",
-                                       parent=self.root)
-                return
-            filename = export_to_csv(self._last_df, self._last_city, self._last_period)
-            messagebox.showinfo("Success", f"Data exported to {filename}", parent=self.root)
-        except Exception as e:
-            logger.error("Failed to export CSV", exc_info=True)
-            messagebox.showerror("Error", f"Failed to export CSV:\n{e}", parent=self.root)
+        text = self.conditions_text
+        text.config(state=tk.NORMAL)
+        text.delete("1.0", tk.END)
+        precip_unit = "inch" if units == "imperial" else "mm"
+        temp_unit = "°F" if units == "imperial" else "°C"
+        hdr_kwargs = {"font": _UI_FONT(9, "bold"), "foreground": C["deep_ocean"],
+                      "spacing1": 4, "spacing3": 2}
+
+        def add(content, tag=None):
+            text.insert(tk.END, content + "\n", tag)
+
+        add("Climate Summary", "hdr")
+        add(f"Location: {getattr(self, '_last_city', '—')}")
+        if not df.empty:
+            mean_max = df["temp_max"].mean()
+            mean_min = df["temp_min"].mean()
+            add(f"Mean temperature: {mean_min:.1f} … {mean_max:.1f} {temp_unit}")
+            mean_precip = df["precip_sum"].mean()
+            add(f"Mean precipitation: {mean_precip:.1f} {precip_unit}")
+        else:
+            add("Fetch data to see conditions.")
+        add("")
+        text.tag_configure("hdr", **hdr_kwargs)
+
+        if insights_text:
+            tag_i = 0
+            for line in insights_text.splitlines():
+                stripped = line.strip()
+                if (stripped and not stripped.startswith(("-", " ", "+"))
+                        and not stripped[0].isdigit()):
+                    tag = f"hdr{tag_i}"
+                    tag_i += 1
+                    text.insert(tk.END, line + "\n", tag)
+                    text.tag_configure(tag, **hdr_kwargs)
+                else:
+                    text.insert(tk.END, line + "\n")
+        else:
+            add("Enable 'Conditions & Extremes' or 'Yearly Breakdown' on the "
+                "Weather Options step for the full analysis.", "muted")
+            text.tag_configure("muted", foreground=C["text_muted"])
+        text.config(state=tk.DISABLED)
 
     # ── Datawrapper ───────────────────────────────────────────────────
     def set_datawrapper_token(self):
-        token = simpledialog.askstring(
-            "Datawrapper API Token",
-            "Enter your Datawrapper API token\n(app.datawrapper.de → Settings & Account → API tokens):",
-            initialvalue=getattr(self, "_datawrapper_token", ""), show="*", parent=self.root)
-        if token is None:
+        """Set / replace the stored Datawrapper API token (persisted per machine)."""
+        stored = getattr(self, "_datawrapper_token", "") or _read_api_token()
+        if stored:
+            self._datawrapper_token = stored
+        else:
+            answer = messagebox.askyesno(
+                "API Token Required",
+                "No Datawrapper API token is stored yet.\n\n"
+                "The token is saved in the Windows registry (macOS: Keychain) so you "
+                "won't be asked again.\n\nOpen the Datawrapper token page now?",
+                parent=self.root,
+            )
+            if answer:
+                _open_api_key_site()
+        token = self._prompt_for_token(
+            initialvalue=getattr(self, "_datawrapper_token", ""))
+        if not token:
             return
+        _write_api_token(token)
+        self.save_settings()
+        self.status_var.set("Datawrapper token saved.")
+
+    def _prompt_for_token(self, initialvalue="", title="Datawrapper API Token"):
+        """Ask the user for a Datawrapper API token and keep it on self.
+
+        Returns the trimmed token, or an empty string if cancelled/invalid.
+        """
+        token = simpledialog.askstring(
+            title,
+            "Enter your Datawrapper API token\n"
+            "(app.datawrapper.de → Settings & Account → API tokens):",
+            initialvalue=initialvalue, show="*", parent=self.root)
+        if token is None:
+            return ""
         token = token.strip()
         if not token:
             messagebox.showwarning("Datawrapper Token", "Token cannot be empty.",
                                    parent=self.root)
-            return
+            return ""
         self._datawrapper_token = token
-        self.save_settings()
-        self.status_var.set("Verifying token…")
-        threading.Thread(target=self._verify_datawrapper_token, args=(token,), daemon=True).start()
+        return token
 
     def _verify_datawrapper_token(self, token):
         from datawrapper_client import check_credentials
@@ -991,19 +1757,30 @@ class WeatherJuiceApp:
             messagebox.showerror("Error", f"CSV export failed:\n{e}", parent=self.root)
             return False
 
+    def export_csv(self):
+        if not hasattr(self, '_last_city') or not hasattr(self, '_last_period'):
+            messagebox.showwarning("Warning", "No data available — fetch data first.",
+                                   parent=self.root)
+            return
+        try:
+            if not hasattr(self, '_last_df'):
+                messagebox.showwarning("Warning", "No processed data stored — fetch again.",
+                                       parent=self.root)
+                return
+            filename = export_to_csv(self._last_df, self._last_city, self._last_period)
+            messagebox.showinfo("Success", f"Data exported to {filename}", parent=self.root)
+        except Exception as e:
+            logger.error("Failed to export CSV", exc_info=True)
+            messagebox.showerror("Error", f"Failed to export CSV:\n{e}", parent=self.root)
+
     def export_csv_and_chart(self):
         data = self._require_last_data()
         if data is None:
             return
         df, city, period = data
 
-        token = getattr(self, "_datawrapper_token", "") or os.getenv("DATAWRAPPER_ACCESS_TOKEN", "")
+        token = self._ensure_api_token()
         if not token:
-            messagebox.showwarning(
-                "API Token Missing",
-                "Datawrapper needs a free API token.\n\n"
-                "Click 'Datawrapper Token' to enter it, or set DATAWRAPPER_ACCESS_TOKEN.",
-                parent=self.root)
             return
 
         if not self._export_csv_step(df, city, period):
@@ -1050,22 +1827,35 @@ class WeatherJuiceApp:
             return
         df, city, period = data
 
+        # Show save dialog first
+        from tkinter import filedialog
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".png",
+            filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")],
+            title="Save QuickChart PNG",
+            initialfile=self._generate_filename().replace('.jpg', '.png'))
+        
+        if not filepath:
+            self.quickchart_btn.config(state="normal")
+            return
+
         self.quickchart_btn.config(state="disabled")
         self.status_var.set("Rendering via QuickChart…")
         threading.Thread(target=self._quickchart_worker,
-                         args=(df, city, period, getattr(self, '_last_units', 'metric')),
+                         args=(df, city, period, getattr(self, '_last_units', 'metric'), filepath),
                          daemon=True).start()
 
-    def _quickchart_worker(self, df, city, period, units):
+    def _quickchart_worker(self, df, city, period, units, filepath):
         from quickchart_client import QuickChartError, export_chart_png
 
-        def report_success(filepath):
+        def report_success(saved_path):
             self.status_var.set("Ready.")
             self.quickchart_btn.config(state="normal")
             if messagebox.askyesno("QuickChart Success",
-                                   f"Chart saved:\n\n{filepath}\n\nOpen now?",
+                                   f"Chart saved:\n\n{saved_path}\n\nOpen now?",
                                    parent=self.root):
-                webbrowser.open(f"file:///{filepath.replace(os.sep, '/')}")
+                # Open in default image viewer instead of browser
+                os.startfile(saved_path)
 
         def report_failure(message):
             self.status_var.set("QuickChart export failed.")
@@ -1127,6 +1917,15 @@ class WeatherJuiceApp:
         self.quickchart_btn.config(state="disabled")
         self.timeline.stop()
         self.timeline.pack_forget()
+        if hasattr(self, "conditions_text"):
+            self.conditions_text.config(state=tk.NORMAL)
+            self.conditions_text.delete("1.0", tk.END)
+            self.conditions_text.insert(
+                tk.END,
+                "An error occurred while fetching data.\n"
+                "Review the message above and try again.\n",
+            )
+            self.conditions_text.config(state=tk.DISABLED)
 
     # ── Settings ──────────────────────────────────────────────────────
     def load_settings(self):
@@ -1190,7 +1989,22 @@ class WeatherJuiceApp:
         if s.get("selected_month") is not None:
             self._month_select_var.set(list(self._month_to_num.keys())[s["selected_month"] - 1])
 
-        self._datawrapper_token = s.get("datawrapper_token", "")
+        token = s.get("datawrapper_token") or ""
+        stored = _read_api_token() or ""
+        if token and not stored:
+            # One-time migration of a legacy token that used to live in the
+            # settings file — move it into the OS store, then stop persisting
+            # it in plaintext settings from now on.
+            self._datawrapper_token = token
+            _write_api_token(token)
+            logger.info("Migrated Datawrapper token from settings file to OS store")
+        else:
+            self._datawrapper_token = stored
+            if stored:
+                logger.info("Loaded Datawrapper token from persistent store")
+
+        # Update UI to reflect loaded settings
+        self._update_step_info(0)
 
     def save_settings(self):
         s = {}
@@ -1212,7 +2026,6 @@ class WeatherJuiceApp:
         s["end_month"] = self._month_to_num.get(self._cr_end_month.get())
         s["end_day"] = int(self._cr_end_day.get()) if self._cr_end_day.get() else None
         s["selected_month"] = self._month_to_num.get(self._month_select_var.get())
-        s["datawrapper_token"] = getattr(self, "_datawrapper_token", "")
         try:
             os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
             with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
@@ -1220,6 +2033,32 @@ class WeatherJuiceApp:
             logger.info("Saved settings to %s", SETTINGS_FILE)
         except Exception as e:
             logger.error("Failed to save settings: %s", e)
+
+    def _ensure_api_token(self):
+        """Return a stored Datawrapper token, prompting when one is missing.
+
+        Used on first publish: offers to open the token page before asking the
+        user to paste a token, then persists it so they are never asked again.
+        """
+        stored = getattr(self, "_datawrapper_token", "") or _read_api_token()
+        if stored:
+            self._datawrapper_token = stored
+            return stored
+        answer = messagebox.askyesno(
+            "API Token Required",
+            "You asked to publish a Datawrapper chart, but no API token is stored yet.\n\n"
+            "The token is saved in the Windows registry (macOS: Keychain) so you won't "
+            "be asked again.\n\nOpen the Datawrapper token page now?",
+            parent=self.root,
+        )
+        if answer:
+            _open_api_key_site()
+        token = self._prompt_for_token()
+        if not token:
+            return ""
+        _write_api_token(token)
+        self.save_settings()
+        return token
 
     def on_closing(self):
         self.save_settings()

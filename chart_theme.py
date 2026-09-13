@@ -15,13 +15,14 @@ PALETTE = {
     "bg_light":       "#F8FAFC",   # clean workspace
     "accent_warning": "#F59E0B",   # alerts, important info
     "text_primary":   "#0F172A",   # main weather metrics
-    "text_secondary": "#64748B",   # supporting info
+    "text_secondary": "#475569",   # supporting info (design --fg-2)
     "text_muted":     "#94A3B8",   # captions, labels
     "surface":        "#FFFFFF",   # cards, panels
     "success":        "#10B981",   # positive trends
     "danger":         "#EF4444",   # alerts, warnings
-    "divider":        "#E2E8F0",   # subtle rules
+    "divider":        "#E2E8F0",   # subtle rules (design --border)
     "input_bg":       "#FFFFFF",   # entry fields
+    "hover":          "#F1F5F9",   # hover fill (design '.step:hover')
 }
 
 # Font stack, most-preferred first; matplotlib resolves the first installed
