@@ -10,4 +10,6 @@ help/html/WeatherSnake.chm
 help/html/helpcompile.log
 help/html/*.chw
 
+
+.freebuff/
 !assets/logo.png

@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WeatherSnake v1.3.0 — Desktop Application</title>
+  <style>
+    /* ─── WeatherSnake theme ─────────────────────────────────────────── */
+    :root {
+      --bg:           #F8FAFC;
+      --surface:      #FFFFFF;
+      --fg:           #0F172A;
+      --fg-2:         #475569;
+      --muted:        #94A3B8;
+      --border:       #E2E8F0;
+      --temp-warm:    #E67E22;
+      --temp-cool:    #3B82F6;
+      --precipitation: #60A5FA;
+      --success:      #10B981;
+      --danger:       #EF4444;
+      --deep-ocean:   #1A2332;
+
+      --font-ui:      Segoe UI, Inter, system-ui, -apple-system, sans-serif;
+      --font-mono:    Consolas, JetBrains Mono, ui-monospace, monospace;
+
+      --scale: 10px;
+      --radius: 8px;
+    }
+
+    /* ─── Reset & base ────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      line-height: 1.5;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── App frame ───────────────────────────────────────────────────── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+
+    /* Top bar */
+    .app-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .app-bar .logo {
+      font-weight: 700;
+      color: var(--temp-warm);
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+    .app-bar .v-major {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .app-bar .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .app-bar .controls button {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 5px 12px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--fg-2);
+      cursor: pointer;
+    }
+    .app-bar .controls button:hover {
+      background: var(--surface);
+      border-color: var(--temp-cool);
+    }
+
+    /* ─── Main wizard area ────────────────────────────────────────────── */
+    .wizard {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left sidebar: step selector */
+    .step-nav {
+      width: 200px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .step-nav .step {
+      padding: 12px 10px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      color: var(--fg-2);
+      font-weight: 500;
+      margin-bottom: 4px;
+      transition: background 0.15s;
+    }
+    .step-nav .step:hover { background: #F1F5F9; }
+    .step-nav .step.current { background: var(--temp-warm); color: white; font-weight: 600; }
+
+    /* Step content area */
+    .step-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 16px 24px;
+    }
+
+    /* Header with progress indicator */
+    .step-header {
+      margin-bottom: 20px;
+    }
+    .step-header .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--temp-warm);
+      margin-bottom: 8px;
+    }
+    .step-header h1 {
+      font-family: var(--font-ui);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--fg);
+      letter-spacing: -0.02em;
+      margin: 0 0 4px;
+    }
+    .step-header p {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    /* ─── Progress bar ────────────────────────────────────────────────── */
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 8px 0;
+    }
+    .progress-bar .circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--fg-2);
+    }
+    .progress-bar .circle.done {
+      background: var(--temp-warm);
+      color: white;
+      border-color: var(--temp-warm);
+    }
+    .progress-bar .circle.current {
+      border-color: var(--temp-warm);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .progress-bar .circle.future {
+      border-color: var(--border);
+      color: var(--muted);
+    }
+    .progress-bar .line {
+      height: 2px;
+      flex: 1;
+      background: var(--border);
+      margin: 0 4px;
+    }
+    .progress-bar .line.done { background: var(--temp-warm); }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(230, 126, 34, 0); }
+    }
+
+    /* ─── Form controls ────────────────────────────────────────────────── */
+    .form-row {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg-2);
+      margin-bottom: 6px;
+    }
+    .form-group label .tooltip {
+      font-weight: 400;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .form-group .combobox {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--fg);
+      cursor: pointer;
+    }
+    .form-group .combobox:focus {
+      outline: 2px solid var(--temp-warm);
+      outline-offset: 0;
+    }
+    .form-group .spinbox {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--fg);
+    }
+    .form-group .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .form-group .checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--temp-warm);
+    }
+    .form-group .checkbox-row label {
+      font-size: 13px;
+      color: var(--fg-2);
+    }
+
+    /* Conditional row */
+    .conditional-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .conditional-row label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .conditional-row .small-cb {
+      width: 32px;
+      height: 26px;
+      font-size: 12px;
+    }
+
+    /* ─── Checkbox group ───────────────────────────────────────────────── */
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .checkbox-group .option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .checkbox-group .option input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--temp-warm);
+    }
+    .checkbox-group .option label {
+      font-size: 13px;
+      color: var(--fg-2);
+    }
+
+    /* ─── Buttons ─────────────────────────────────────────────────────── */
+    .wizard-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .wizard-btns button {
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .wizard-btns .btn-back {
+      background: var(--surface);
+      color: var(--fg-2);
+      border: 1px solid var(--border);
+    }
+    .wizard-btns .btn-back:disabled { opacity: 0.4; cursor: not-allowed; }
+    .wizard-btns .btn-next {
+      background: var(--temp-warm);
+      color: white;
+    }
+    .wizard-btns .btn-next:disabled { opacity: 0.4; cursor: not-allowed; }
+    .wizard-btns .btn-fetch {
+      background: var(--temp-warm);
+      color: white;
+    }
+    .wizard-btns .btn-fetch:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ─── Results area ────────────────────────────────────────────────── */
+    .results {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+    .results[data-visible="false"] { display: none; }
+
+    /* Data table */
+    .table-panel {
+      width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .table-panel .panel-header {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .table-scroll {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .table-scroll table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .table-scroll th {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .table-scroll td {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--fg);
+      text-align: right;
+    }
+    .table-scroll tr:last-child td { border-bottom: none; }
+    .table-scroll tr:hover td { background: #F8FAFC; }
+
+    /* Chart area */
+    .chart-panel {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      position: relative;
+    }
+
+    /* Analysis sidebar */
+    .analysis-panel {
+      width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .analysis-panel .panel-header {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .analysis-panel .text-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--fg);
+      font-family: var(--font-mono);
+      white-space: pre-line;
+    }
+    .analysis-panel .text-content h3 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--deep-ocean);
+      margin: 10px 0 4px;
+      font-family: var(--font-ui);
+    }
+    .analysis-panel .text-content .muted { color: var(--muted); font-style: italic; }
+
+    /* ─── Temperature timeline ────────────────────────────────────────── */
+    .timeline {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin: 0 0 16px;
+    }
+    .timeline-bar {
+      height: 34px;
+      position: relative;
+      background: linear-gradient(to right, var(--temp-cool), var(--temp-warm));
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .timeline-bar::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      right: 60px;
+      height: 24px;
+      border: 2px solid var(--deep-ocean);
+      border-radius: 2px;
+    }
+    .timeline-bar .temp-labels {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 60px;
+      height: 100%;
+      align-items: center;
+    }
+    .timeline-bar .label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .timeline-bar .range-label {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--temp-warm);
+      white-space: nowrap;
+    }
+    .timeline-bar .analysing {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      animation: pulse 0.8s ease-in-out infinite;
+    }
+
+    /* ─── Status bar ──────────────────────────────────────────────────── */
+    .status-bar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .status-bar .left {
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+    .status-bar .right {
+      font-size: 10px;
+    }
+
+    /* ─── Output buttons ──────────────────────────────────────────────── */
+    .output-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .output-btn {
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--fg-2);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .output-btn:hover { background: #F1F5F9; border-color: var(--temp-cool); }
+    .output-btn.accent {
+      background: var(--temp-warm);
+      color: white;
+      border-color: var(--temp-warm);
+    }
+    .output-btn.accent:hover { background: #D35400; }
+    .output-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ─── Media placeholder ────────────────────────────────────────────── */
+    .media-placeholder {
+      background: linear-gradient(135deg, #E67E2222 0%, #3B82F618 100%);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 16/10;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <!-- App frame -->
+  <div class="app">
+
+    <!-- App bar -->
+    <header class="app-bar">
+      <div class="logo">WeatherSnake</div>
+      <div class="controls">
+        <span class="v-major">v1.3.0</span>
+        <button>Settings</button>
+        <button>?</button>
+      </div>
+    </header>
+
+    <!-- Wizard body -->
+    <div class="wizard">
+
+      <!-- Step nav -->
+      <nav class="step-nav">
+        <div class="step current" data-step="0">1. Location</div>
+        <div class="step" data-step="1">2. Time Period</div>
+        <div class="step" data-step="2">3. Weather Options</div>
+        <div class="step" data-step="3">4. Output</div>
+      </nav>
+
+      <!-- Step content -->
+      <div class="step-content">
+        <div class="step-header">
+          <p class="eyebrow">WHERE ARE YOU ANALYSING?</p>
+          <h1>Location</h1>
+          <p>Select a preset location or enter custom coordinates</p>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-bar">
+          <div class="circle done">✓</div>
+          <div class="circle current">1</div>
+          <div class="circle future">2</div>
+          <div class="circle future">3</div>
+          <div class="circle future">4</div>
+          <div class="line done"></div>
+          <div class="line"></div>
+          <div class="line"></div>
+          <div class="line"></div>
+        </div>
+
+        <!-- Step 1 form -->
+        <div class="form">
+          <div class="form-row">
+            <div class="form-group" style="flex:2">
+              <label>Location
+                <span class="tooltip">(preset cities or custom entry)</span>
+              </label>
+              <select class="combobox" style="width:100%">
+                <option value="cape-town" selected>Cape Town</option>
+                <option value="johannesburg">Johannesburg</option>
+                <option value="durban">Durban</option>
+                <option value="custom">Custom…</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:3">
+              <label>City name or coordinates</label>
+              <input class="combobox" placeholder="Type any city or lat, lon…" style="width:100%" />
+            </div>
+          </div>
+          <p style="font-size:11px; color:var(--muted); margin:6px 0 0;">Preset: Cape Town, Johannesburg, Durban. Or enter any city name recognised by the weather API.</p>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="wizard-btns">
+          <button class="btn-back" disabled>← Back</button>
+          <button class="btn-next">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="left">Ready. City: Cape Town · Period: Month</div>
+    </div>
+  </div>
+
+  <!-- Step 2: Time Period -->
+  <div class="app" style="display:none">
+    <header class="app-bar">
+      <div class="logo">WeatherSnake</div>
+      <div class="controls">
+        <span class="v-major">v1.3.0</span>
+        <button>?</button>
+      </div>
+    </header>
+    <div class="wizard">
+      <nav class="step-nav">
+        <div class="step" data-step="0">1. Location</div>
+        <div class="step current" data-step="1">2. Time Period</div>
+        <div class="step" data-step="2">3. Weather Options</div>
+        <div class="step" data-step="3">4. Output</div>
+      </nav>
+      <div class="step-content">
+        <div class="step-header">
+          <p class="eyebrow">WHEN DO YOU WANT DATA FOR?</p>
+          <h1>Time Period</h1>
+          <p>Choose a season, full year, month, or custom date range</p>
+        </div>
+        <div class="progress-bar">
+          <div class="circle done">✓</div>
+          <div class="circle done">✓</div>
+          <div class="circle current">2</div>
+          <div class="circle future">3</div>
+          <div class="circle future">4</div>
+          <div class="line done"></div>
+          <div class="line done"></div>
+          <div class="line"></div>
+          <div class="line"></div>
+        </div>
+        <div class="form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Period
+                <span class="tooltip">(season, full year, month, or custom range)</span>
+              </label>
+              <select class="combobox">
+                <option value="summer" selected>Summer</option>
+                <option value="autumn">Autumn</option>
+                <option value="winter">Winter</option>
+                <option value="spring">Spring</option>
+                <option value="full-year">Full Year</option>
+                <option value="month">Month</option>
+                <option value="custom-range">Custom Range</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Depth
+                <span class="tooltip">(years of history to average, 1–20)</span>
+              </label>
+              <select class="combobox">
+                <option value="1">1 year</option>
+                <option value="3">3 years</option>
+                <option value="5" selected>5 years</option>
+                <option value="7">7 years</option>
+                <option value="10">10 years</option>
+                <option value="15">15 years</option>
+                <option value="20">20 years</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Units
+                <span class="tooltip">(°C/mm or °F/inches)</span>
+              </label>
+              <select class="combobox">
+                <option value="metric" selected>Metric</option>
+                <option value="imperial">Imperial</option>
+              </select>
+            </div>
+          </div>
+          <!-- Conditional selectors -->
+          <div class="form-group" id="custom-range-row" style="display:none; margin-top:8px;">
+            <label>Custom date range</label>
+            <div class="conditional-row">
+              <label>From</label>
+              <select class="combobox small-cb">
+                <option>1</option><option>2</option><option>3</option><option>4</option>
+                <option>5</option><option>6</option><option>7</option><option>8</option>
+                <option>9</option><option>10</option><option>11</option><option>12</option>
+                <option>13</option><option>14</option><option>15</option><option>16</option>
+                <option>17</option><option>18</option><option>19</option><option>20</option>
+                <option>21</option><option>22</option><option>23</option><option>24</option>
+                <option>25</option><option>26</option><option>27</option><option>28</option>
+                <option>29</option><option>30</option><option>31</option>
+              </select>
+              <select class="combobox small-cb">
+                <option selected>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
+                <option>May</option><option>Jun</option><option>Jul</option><option>Aug</option>
+                <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
+              </select>
+              <span style="color:var(--muted)">to</span>
+              <select class="combobox small-cb">
+                <option>1</option><option>2</option><option>3</option><option>4</option>
+                <option>5</option><option>6</option><option>7</option><option>8</option>
+                <option>9</option><option>10</option><option>11</option><option>12</option>
+                <option>13</option><option>14</option><option>15</option><option>16</option>
+                <option>17</option><option>18</option><option>19</option><option>20</option>
+                <option>21</option><option>22</option><option>23</option><option>24</option>
+                <option>25</option><option>26</option><option>27</option><option>28</option>
+                <option>29</option><option>30</option><option>31</option>
+              </select>
+              <select class="combobox small-cb">
+                <option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
+                <option selected>Mar</option><option>May</option><option>Jun</option><option>Jul</option>
+                <option>Aug</option><option>Sep</option><option>Oct</option><option>Nov</option>
+                <option>Dec</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-btns">
+          <button class="btn-back">← Back</button>
+          <button class="btn-next">Next →</button>
+        </div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="left">Period: Summer · Depth: 5 years · Units: °C/mm</div>
+    </div>
+  </div>
+
+  <!-- Step 3: Weather Options -->
+  <div class="app" style="display:none">
+    <header class="app-bar">
+      <div class="logo">WeatherSnake</div>
+      <div class="controls">
+        <span class="v-major">v1.3.0</span>
+        <button>?</button>
+      </div>
+    </header>
+    <div class="wizard">
+      <nav class="step-nav">
+        <div class="step" data-step="0">1. Location</div>
+        <div class="step" data-step="1">2. Time Period</div>
+        <div class="step current" data-step="2">3. Weather Options</div>
+        <div class="step" data-step="3">4. Output</div>
+      </nav>
+      <div class="step-content">
+        <div class="step-header">
+          <p class="eyebrow">CUSTOMISE YOUR ANALYSIS</p>
+          <h1>Weather Options</h1>
+          <p>Choose which metrics and reports to generate</p>
+        </div>
+        <div class="progress-bar">
+          <div class="circle done">✓</div>
+          <div class="circle done">✓</div>
+          <div class="circle done">✓</div>
+          <div class="circle current">3</div>
+          <div class="circle future">4</div>
+          <div class="line done"></div>
+          <div class="line done"></div>
+          <div class="line done"></div>
+          <div class="line"></div>
+        </div>
+        <div class="form">
+          <div class="checkbox-group">
+            <div class="option">
+              <input type="checkbox" id="opt-monthly" checked>
+              <label for="opt-monthly">Monthly Average</label>
+              <span style="margin-left:auto;font-size:11px;color:var(--muted)">Show averages per month</span>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="opt-unify" checked>
+              <label for="opt-unify">Shared Y-Axis</label>
+              <span style="margin-left:auto;font-size:11px;color:var(--muted)">Same scale for temp & precipitation</span>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="opt-precip">
+              <label for="opt-precip">Precipitation threshold</label>
+              <span style="margin-left:auto;font-size:11px;color:var(--muted)">Min precipitation (mm)</span>
+              <input class="spinbox small-cb" type="number" value="2.0" min="0" max="50" step="0.5" style="width:60px">
+            </div>
+          </div>
+          <div class="checkbox-group" style="margin-top:16px">
+            <div class="option">
+              <input type="checkbox" id="opt-insights" checked>
+              <label for="opt-insights">Conditions & Extremes</label>
+              <span style="margin-left:auto;font-size:11px;color:var(--muted)">Most common conditions and ranges</span>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="opt-yearly">
+              <label for="opt-yearly">Yearly Breakdown</label>
+              <span style="margin-left:auto;font-size:11px;color:var(--muted)">Per-year averages with trends</span>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-btns">
+          <button class="btn-back">← Back</button>
+          <button class="btn-next">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4: Output -->
+  <div class="app" style="display:none">
+    <header class="app-bar">
+      <div class="logo">WeatherSnake</div>
+      <div class="controls">
+        <span class="v-major">v1.3.0</span>
+        <button>?</button>
+      </div>
+    </header>
+    <div class="wizard">
+      <nav class="step-nav">
+        <div class="step" data-step="0">1. Location</div>
+        <div class="step" data-step="1">2. Time Period</div>
+        <div class="step" data-step="2">3. Weather Options</div>
+        <div class="step current" data-step="3">4. Output</div>
+      </nav>
+      <div class="step-content">
+        <div class="step-header">
+          <p class="eyebrow">REVIEW AND EXPORT YOUR RESULTS</p>
+          <h1>Output</h1>
+          <p>Fetch data to generate the chart and analysis</p>
+        </div>
+        <div class="progress-bar">
+          <div class="circle done">✓</div>
+          <div class="circle done">✓</div>
+          <div class="circle done">✓</div>
+          <div class="circle done">✓</div>
+          <div class="circle current">4</div>
+          <div class="line done"></div>
+          <div class="line done"></div>
+          <div class="line done"></div>
+          <div class="line done"></div>
+        </div>
+        <!-- Fetch button -->
+        <div class="wizard-btns" style="margin-bottom:16px;">
+          <button class="btn-fetch" id="fetch-btn">Fetch Data</button>
+        </div>
+        <!-- Results area (hidden until fetched) -->
+        <div class="results" id="results" data-visible="false">
+          <!-- Timeline bar -->
+          <div class="timeline" id="timeline" style="display:none">
+            <div class="timeline-bar">
+              <div class="temp-labels">
+                <span class="label">-15°C</span>
+                <span class="label">+40°C</span>
+              </div>
+              <div class="range-label">— °C … +°C</div>
+            </div>
+          </div>
+          <!-- Results panels -->
+          <div class="results">
+            <div class="table-panel">
+              <div class="panel-header">Data</div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th><th>Max Temp</th><th>Min Temp</th><th>Precip</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Jan</td><td>24.3°C</td><td>15.1°C</td><td>45mm</td></tr>
+                    <tr><td>Feb</td><td>25.2°C</td><td>16.0°C</td><td>38mm</td></tr>
+                    <tr><td>Mar</td><td>23.8°C</td><td>14.8°C</td><td>52mm</td></tr>
+                    <tr><td>Apr</td><td>21.1°C</td><td>12.5°C</td><td>67mm</td></tr>
+                    <tr><td>May</td><td>18.4°C</td><td>10.2°C</td><td>78mm</td></tr>
+                    <tr><td>Jun</td><td>15.9°C</td><td>7.8°C</td><td>92mm</td></tr>
+                    <tr><td>Jul</td><td>15.2°C</td><td>6.5°C</td><td>88mm</td></tr>
+                    <tr><td>Aug</td><td>16.8°C</td><td>8.1°C</td><td>81mm</td></tr>
+                    <tr><td>Sep</td><td>19.3°C</td><td>10.4°C</td><td>64mm</td></tr>
+                    <tr><td>Oct</td><td>21.5°C</td><td>12.9°C</td><td>55mm</td></tr>
+                    <tr><td>Nov</td><td>23.2°C</td><td>14.5°C</td><td>41mm</td></tr>
+                    <tr><td>Dec</td><td>24.1°C</td><td>15.7°C</td><td>48mm</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="chart-panel">
+              <div class="panel-header">Chart — Historical Weather for Cape Town (Month)</div>
+              <div class="media-placeholder">[ Matplotlib figure: temperature max/min + precipitation bars ]</div>
+            </div>
+            <div class="analysis-panel">
+              <div class="panel-header">Analysis Summary</div>
+              <div class="text-content">
+                <h3>Climate Summary</h3>
+                Location: Cape Town
+                Mean temperature: 15.1 … 24.3°C
+                Mean precipitation: 62.3 mm
+
+                <h3>Weather Conditions (historical)</h3>
+                  Clear days             182    49.7%
+                  Partly cloudy         127    34.5%
+                  Overcast               59    16.0%
+                  Fog                    3     0.8%
+                  Rain days (>=1mm):    45.2%
+
+                <h3>Variability & Extremes</h3>
+                Typical daily high: 22.5°C (range 15.2 to 25.2°C)
+                Typical daily low:  11.8°C (range 6.5 to 16.0°C)
+                Record low/high: 6.5°C / 25.2°C
+                Wettest year:  2023 (892 mm)
+                Driest year:   2017 (441 mm)
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Export buttons -->
+        <div class="output-buttons" id="output-btns" style="display:none">
+          <button class="output-btn accent" id="save-btn" disabled>Save JPG</button>
+          <button class="output-btn" id="export-csv-btn" disabled>Export CSV</button>
+          <button class="output-btn" id="datawrapper-btn" disabled>Datawrapper</button>
+          <button class="output-btn" id="quickchart-btn" disabled>QuickChart PNG</button>
+          <button class="output-btn" id="api-key-btn">Datawrapper Token</button>
+        </div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="left">Fetch data to see results and export options</div>
+    </div>
+  </div>
+
+</body>
+</html>
