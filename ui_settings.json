@@ -1,17 +1,17 @@
 {
-  "city": "Cape Town",
+  "city": "Custom...",
+  "custom_city": "cape town",
   "period": "Month",
-  "depth": 3,
+  "depth": 5,
   "units": "metric",
-  "monthly": true,
+  "monthly": false,
   "unify_scales": true,
-  "precip_threshold": 3.0,
+  "precip_threshold": 2.0,
   "insights": true,
   "yearly": true,
-  "start_month": 1,
-  "start_day": 1,
-  "end_month": 3,
-  "end_day": 31,
-  "selected_month": 7,
-  "datawrapper_token": ""
+  "start_month": 11,
+  "start_day": 15,
+  "end_month": 2,
+  "end_day": 28,
+  "selected_month": 11
 }
