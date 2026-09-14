@@ -41,6 +41,8 @@ Two disk images ship with each release — pick the one that matches your Mac (c
 
 The app is unsigned, so the first launch may report it "cannot be opened because the developer cannot be verified": right-click **WeatherSnake** in Applications and choose **Open**, then confirm.
 
+If an Intel Mac instead reports the app "requires Mac OS 11 or later", the arm64 image was installed by mistake — use the `-macos-intel` image.
+
 ### Linux
 
 ```bash

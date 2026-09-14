@@ -214,6 +214,14 @@ jobs:
       if: runner.os == 'macOS'
       shell: bash
       run: |
+        # Make the declared minimum macOS explicit before packaging: this key
+        # is what macOS reads for the "requires Mac OS X or later" message
+        # (the binaries are the real constraint; this keeps the message
+        # accurate: 10.15 for Intel, 11.0 for Apple silicon).
+        PLIST="dist/WeatherSnake.app/Contents/Info.plist"
+        /usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string ${{ matrix.mac_min }}" "$PLIST" \
+          || /usr/libexec/PlistBuddy -c "Set :LSMinimumSystemVersion ${{ matrix.mac_min }}" "$PLIST"
+        echo "LSMinimumSystemVersion set to: $(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$PLIST")"
         mkdir -p dmg-stage
         cp -R dist/WeatherSnake.app dmg-stage/
         cp dist/WeatherSnake-CLI dmg-stage/WeatherSnake-CLI
@@ -355,5 +363,20 @@ jobs:
           dist-all/WeatherSnake-*
           dist-all/weathersnake_*
           dist-all/SHA256SUMS.txt
+        body: |
+          ## Which macOS download do I need?
+
+          - **Mac with an Intel processor** (macOS 10.15 Catalina or later):
+            `WeatherSnake-<version>-macos-intel.dmg`
+          - **Mac with Apple silicon** — M1/M2/M3/… (macOS 11 Big Sur or later):
+            `WeatherSnake-<version>-macos-arm64.dmg`
+
+          Check  the Apple menu > About This Mac: a "Chip" such as Apple M1 means Apple
+          silicon; "Processor: Intel" means Intel. Installing the wrong image on an Intel Mac
+          reports "requires Mac OS 11 or later".
+
+          All artifacts are signed with Sigstore/cosign — verify with the `cosign verify-blob`
+          command in the README. The app itself is not signed with an Apple certificate, so if
+          the first launch is blocked, right-click **WeatherSnake** and choose **Open**.
         generate_release_notes: true
         fail_on_unmatched_files: true

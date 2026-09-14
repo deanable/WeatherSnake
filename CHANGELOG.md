@@ -15,6 +15,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
   checksummed like the other release artifacts.
 
 ### Fixed
+- **Clearer macOS downloads and an accurate minimum-version message.** The arm64 image sorts
+  first on the release page, so Intel users were picking it and seeing "requires Mac OS 11 or
+  later"; the release page now states which image to use per Mac, and each `.app` declares
+  `LSMinimumSystemVersion` explicitly (10.15 Intel / 11.0 Apple silicon) instead of falling
+  back to binary metadata.
 - **macOS builds now run on macOS 10.15 (Catalina) and later.** The release workflow built the
   `.dmg` on the Apple Silicon `macos-latest` runner, producing an arm64-only app that cannot
   launch on Intel Macs — the only kind that run 10.15. The macOS build now runs on the Intel
