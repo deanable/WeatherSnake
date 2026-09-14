@@ -3,6 +3,16 @@
 All notable changes to WeatherSnake are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- **macOS builds now run on macOS 10.15 (Catalina) and later.** The release workflow built the
+  `.dmg` on the Apple Silicon `macos-latest` runner, producing an arm64-only app that cannot
+  launch on Intel Macs — the only kind that run 10.15. The macOS build now runs on the Intel
+  `macos-15-intel` runner with `MACOSX_DEPLOYMENT_TARGET=10.15` (the bundled python.org Python
+  and the numpy/pandas/matplotlib wheels all support 10.15+), and a CI verification step fails
+  the build if either executable is not x86_64. On Apple Silicon the app runs via Rosetta 2.
+
 ## [1.3.0] - 2026-09-12
 
 ### Added

@@ -38,7 +38,12 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-          - os: macos-latest
+          # Intel runner on purpose: 'macos-latest' is now an Apple Silicon
+          # (arm64) image, and an arm64-only app cannot run on macOS 10.15
+          # Catalina — the oldest macOS we support, which only exists on Intel
+          # Macs. An x86_64 build runs natively on 10.15+ Intel Macs and on
+          # Apple Silicon via Rosetta 2.
+          - os: macos-15-intel
             platform: macos
           - os: ubuntu-latest
             platform: linux
@@ -109,15 +114,26 @@ jobs:
     - name: Build CLI executable (macOS/Linux)
       if: runner.os != 'Windows'
       shell: bash
+      env:
+        # Only read by the Apple toolchain (ignored on Linux): keeps any
+        # extension code compiled from source compatible with macOS 10.15+.
+        MACOSX_DEPLOYMENT_TARGET: ${{ runner.os == 'macOS' && '10.15' || '' }}
       run: |
         pyinstaller --onefile --clean --name WeatherSnake-CLI --add-data "assets:assets" --add-data "help/html:help/html" weather_juice.py
 
     - name: Build GUI app bundle (macOS)
       if: runner.os == 'macOS'
       shell: bash
+      env:
+        # Minimum supported macOS (Catalina): the Apple toolchain and
+        # PyInstaller embed this as the binaries' minimum OS version. The
+        # bundled Python (python.org universal2) and the numpy/pandas/
+        # matplotlib wheels installed from PyPI all support 10.15+.
+        MACOSX_DEPLOYMENT_TARGET: "10.15"
       run: |
-        # --windowed without --onefile produces the .app bundle macOS users expect
-        pyinstaller --clean --windowed --name WeatherSnake --add-data "assets:assets" --add-data "help/html:help/html" ui_app.pyw
+        # --windowed without --onefile produces the .app bundle macOS users
+        # expect; --target-architecture pins the bundle to Intel x86_64.
+        pyinstaller --clean --windowed --target-architecture x86_64 --name WeatherSnake --add-data "assets:assets" --add-data "help/html:help/html" ui_app.pyw
 
     - name: Build GUI executable (Linux)
       if: runner.os == 'Linux'
@@ -151,6 +167,28 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: Compress-Archive -Path dist/WeatherSnake.exe, dist/WeatherSnake-CLI.exe -DestinationPath dist/WeatherSnake-${{ env.VERSION }}-windows-x64-portable.zip -Force
+
+    # Guard the 10.15 target: the two executables must be Intel x86_64 (an
+    # arm64-only app cannot launch on Catalina, and this is exactly the
+    # failure mode seen when the macOS job ran on the Apple Silicon
+    # 'macos-latest' runner). If the runner label is ever changed back, the
+    # build fails here instead of shipping a DMG that Catalina rejects.
+    - name: Verify macOS binaries target macOS 10.15+
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        set -euo pipefail
+        for bin in dist/WeatherSnake.app/Contents/MacOS/WeatherSnake dist/WeatherSnake-CLI; do
+          echo "== $bin =="
+          lipo -archs "$bin"
+          lipo -archs "$bin" | grep -qw x86_64 || {
+            echo "::error::$bin is not x86_64 - macOS 10.15 (Catalina) only runs Intel binaries"
+            exit 1
+          }
+          # Informational: the minimum macOS version the binary declares.
+          otool -l "$bin" | grep -A 4 -E "LC_BUILD_VERSION|LC_VERSION_MIN_MACOSX" || true
+        done
+        echo "LSMinimumSystemVersion: $(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' dist/WeatherSnake.app/Contents/Info.plist 2>/dev/null || echo '(not set)')"
 
     # ----- macOS packaging: .app bundle + drag-to-Install .dmg -----
     - name: Package macOS dmg

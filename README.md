@@ -31,8 +31,12 @@ Prefer no installation? Grab `WeatherSnake-<version>-windows-x64-portable.zip` o
 
 ### macOS
 
+Requires macOS 10.15 (Catalina) or later — Intel Macs natively, Apple Silicon via Rosetta 2 (macOS offers to install Rosetta on first launch).
+
 1. Download `WeatherSnake-<version>-macos.dmg` from Releases.
 2. Open it and drag **WeatherSnake** into **Applications**. (The CLI binary is included on the disk image.)
+
+The app is unsigned, so the first launch may report it "cannot be opened because the developer cannot be verified": right-click **WeatherSnake** in Applications and choose **Open**, then confirm.
 
 ### Linux
 
