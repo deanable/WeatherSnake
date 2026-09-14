@@ -15,7 +15,7 @@ Weather data comes from the free [Open-Meteo](https://open-meteo.com/) Archive A
 - **Metric or imperial** — °C/mm or °F/inches throughout, including deltas.
 - **Two interfaces** — a scriptable CLI and a desktop GUI with the same engine.
 - **Exports** — CSV of processed data, PNG/JPG chart export, a shareable interactive Datawrapper chart, and a keyless QuickChart PNG renderer from the GUI.
-- **Cross-platform, with installers** — native installers for Windows (setup .exe), macOS (.dmg), and Linux (.deb), plus portable builds; CI produces them all on version tags.
+- **Cross-platform, with installers** — native installers for Windows (setup .exe), macOS (.dmg for Intel and Apple silicon), and Linux (.deb), plus portable builds; CI produces them all on version tags.
 - **Built-in help system** — a compiled HTML Help manual (`WeatherSnake.chm`, 19 topics) shipped inside the app, with a Help menu, context-sensitive F1 on every control, keyboard shortcuts, and a browser-based fallback on macOS/Linux.
 
 ## Quick Start
@@ -31,9 +31,12 @@ Prefer no installation? Grab `WeatherSnake-<version>-windows-x64-portable.zip` o
 
 ### macOS
 
-Requires macOS 10.15 (Catalina) or later — Intel Macs natively, Apple Silicon via Rosetta 2 (macOS offers to install Rosetta on first launch).
+Two disk images ship with each release — pick the one that matches your Mac (check the Apple menu > About This Mac: a "Chip" such as Apple M1 means Apple silicon, "Processor: Intel" means Intel):
 
-1. Download `WeatherSnake-<version>-macos.dmg` from Releases.
+- `WeatherSnake-<version>-macos-arm64.dmg` — Apple silicon (M1 or later); requires macOS 11 (Big Sur) or later.
+- `WeatherSnake-<version>-macos-intel.dmg` — Intel processor; requires macOS 10.15 (Catalina) or later. It also runs on Apple silicon via Rosetta 2, but prefer the arm64 image there.
+
+1. Download the DMG from Releases.
 2. Open it and drag **WeatherSnake** into **Applications**. (The CLI binary is included on the disk image.)
 
 The app is unsigned, so the first launch may report it "cannot be opened because the developer cannot be verified": right-click **WeatherSnake** in Applications and choose **Open**, then confirm.

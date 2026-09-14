@@ -38,13 +38,29 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-          # Intel runner on purpose: 'macos-latest' is now an Apple Silicon
-          # (arm64) image, and an arm64-only app cannot run on macOS 10.15
-          # Catalina — the oldest macOS we support, which only exists on Intel
-          # Macs. An x86_64 build runs natively on 10.15+ Intel Macs and on
-          # Apple Silicon via Rosetta 2.
+          # Two macOS builds, because no single binary can cover all Macs:
+          # - Intel x86_64 on an Intel runner, for macOS 10.15 (Catalina) —
+          #   the oldest macOS we support, which only exists on Intel Macs —
+          #   and newer Intel Macs. (Apple silicon Macs can also run this
+          #   build via Rosetta 2.)
+          # - Native arm64 on an Apple silicon runner, for M1+ Macs. arm64
+          #   needs macOS 11.0, the first release that runs on Apple silicon.
+          #   A single universal2 DMG is not possible: the PyPI wheels for
+          #   numpy/pandas/matplotlib are single-arch only.
+          # 'macos-latest' is deliberately avoided: it can switch arch or OS
+          # version under us; the labels above pin both down. mac_tag names
+          # the DMG, mac_min is the deployment target, mac_arch the binary
+          # arch the verify step enforces.
           - os: macos-15-intel
-            platform: macos
+            platform: macos-intel
+            mac_arch: x86_64
+            mac_min: "10.15"
+            mac_tag: intel
+          - os: macos-15
+            platform: macos-arm64
+            mac_arch: arm64
+            mac_min: "11.0"
+            mac_tag: arm64
           - os: ubuntu-latest
             platform: linux
 
@@ -116,8 +132,9 @@ jobs:
       shell: bash
       env:
         # Only read by the Apple toolchain (ignored on Linux): keeps any
-        # extension code compiled from source compatible with macOS 10.15+.
-        MACOSX_DEPLOYMENT_TARGET: ${{ runner.os == 'macOS' && '10.15' || '' }}
+        # extension code compiled from source compatible with the target's
+        # minimum macOS (10.15 Intel, 11.0 Apple silicon).
+        MACOSX_DEPLOYMENT_TARGET: ${{ runner.os == 'macOS' && matrix.mac_min || '' }}
       run: |
         pyinstaller --onefile --clean --name WeatherSnake-CLI --add-data "assets:assets" --add-data "help/html:help/html" weather_juice.py
 
@@ -125,15 +142,16 @@ jobs:
       if: runner.os == 'macOS'
       shell: bash
       env:
-        # Minimum supported macOS (Catalina): the Apple toolchain and
-        # PyInstaller embed this as the binaries' minimum OS version. The
-        # bundled Python (python.org universal2) and the numpy/pandas/
-        # matplotlib wheels installed from PyPI all support 10.15+.
-        MACOSX_DEPLOYMENT_TARGET: "10.15"
+        # Minimum supported macOS for this build (10.15 Catalina on Intel,
+        # 11.0 on Apple silicon): the Apple toolchain and PyInstaller embed
+        # this as the binaries' minimum OS version. The bundled python.org
+        # Python and the numpy/pandas/matplotlib wheels installed from PyPI
+        # support both targets on their respective architectures.
+        MACOSX_DEPLOYMENT_TARGET: ${{ matrix.mac_min }}
       run: |
         # --windowed without --onefile produces the .app bundle macOS users
-        # expect; --target-architecture pins the bundle to Intel x86_64.
-        pyinstaller --clean --windowed --target-architecture x86_64 --name WeatherSnake --add-data "assets:assets" --add-data "help/html:help/html" ui_app.pyw
+        # expect; --target-architecture pins the bundle to the build's arch.
+        pyinstaller --clean --windowed --target-architecture ${{ matrix.mac_arch }} --name WeatherSnake --add-data "assets:assets" --add-data "help/html:help/html" ui_app.pyw
 
     - name: Build GUI executable (Linux)
       if: runner.os == 'Linux'
@@ -168,12 +186,13 @@ jobs:
       shell: pwsh
       run: Compress-Archive -Path dist/WeatherSnake.exe, dist/WeatherSnake-CLI.exe -DestinationPath dist/WeatherSnake-${{ env.VERSION }}-windows-x64-portable.zip -Force
 
-    # Guard the 10.15 target: the two executables must be Intel x86_64 (an
-    # arm64-only app cannot launch on Catalina, and this is exactly the
-    # failure mode seen when the macOS job ran on the Apple Silicon
-    # 'macos-latest' runner). If the runner label is ever changed back, the
-    # build fails here instead of shipping a DMG that Catalina rejects.
-    - name: Verify macOS binaries target macOS 10.15+
+    # Guard the per-arch targets: each macOS build's executables must match
+    # its matrix architecture (an arm64-only app cannot launch on Catalina
+    # Intel Macs, and an x86_64 build is not native on Apple silicon — the
+    # exact failure mode seen when the macOS job ran on the Apple Silicon
+    # 'macos-latest' runner). If a runner label is ever changed, the build
+    # fails here instead of shipping a DMG for the wrong Macs.
+    - name: Verify macOS binaries target macOS ${{ matrix.mac_min }}+
       if: runner.os == 'macOS'
       shell: bash
       run: |
@@ -181,8 +200,8 @@ jobs:
         for bin in dist/WeatherSnake.app/Contents/MacOS/WeatherSnake dist/WeatherSnake-CLI; do
           echo "== $bin =="
           lipo -archs "$bin"
-          lipo -archs "$bin" | grep -qw x86_64 || {
-            echo "::error::$bin is not x86_64 - macOS 10.15 (Catalina) only runs Intel binaries"
+          lipo -archs "$bin" | grep -qw "${{ matrix.mac_arch }}" || {
+            echo "::error::$bin is not ${{ matrix.mac_arch }} - the ${{ matrix.mac_tag }} DMG requires ${{ matrix.mac_arch }} binaries"
             exit 1
           }
           # Informational: the minimum macOS version the binary declares.
@@ -201,8 +220,8 @@ jobs:
         cp -R help/html dmg-stage/help
         ln -s /Applications dmg-stage/Applications
         hdiutil create -volname "WeatherSnake ${{ env.VERSION }}" -srcfolder dmg-stage -ov -format UDZO \
-          "dist/WeatherSnake-${{ env.VERSION }}-macos.dmg"
-        zip -qry "dist/WeatherSnake-${{ env.VERSION }}-macos-app.zip" dist/WeatherSnake.app
+          "dist/WeatherSnake-${{ env.VERSION }}-macos-${{ matrix.mac_tag }}.dmg"
+        zip -qry "dist/WeatherSnake-${{ env.VERSION }}-macos-${{ matrix.mac_tag }}-app.zip" dist/WeatherSnake.app
 
     # ----- Linux packaging: .deb + portable tarball -----
     - name: Package Linux deb

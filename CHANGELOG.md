@@ -5,13 +5,23 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+### Added
+- **Native Apple Silicon (arm64) macOS build.** Releases now ship two disk images:
+  `WeatherSnake-<version>-macos-arm64.dmg` for Apple silicon Macs (requires macOS 11/Big Sur,
+  the first release that runs on M1) and `WeatherSnake-<version>-macos-intel.dmg` for Intel
+  Macs (macOS 10.15+; also runs on Apple silicon via Rosetta 2). A single universal2 image is not possible because the PyPI wheels for
+  numpy/pandas/matplotlib are single-arch; each build is verified to contain the expected
+  architecture before packaging. Both images carry the CLI binary and are signed and
+  checksummed like the other release artifacts.
+
 ### Fixed
 - **macOS builds now run on macOS 10.15 (Catalina) and later.** The release workflow built the
   `.dmg` on the Apple Silicon `macos-latest` runner, producing an arm64-only app that cannot
   launch on Intel Macs — the only kind that run 10.15. The macOS build now runs on the Intel
   `macos-15-intel` runner with `MACOSX_DEPLOYMENT_TARGET=10.15` (the bundled python.org Python
   and the numpy/pandas/matplotlib wheels all support 10.15+), and a CI verification step fails
-  the build if either executable is not x86_64. On Apple Silicon the app runs via Rosetta 2.
+  the build if either executable is not x86_64. Apple silicon users should use the arm64 DMG;
+  the Intel build also runs there via Rosetta 2.
 
 ## [1.3.0] - 2026-09-12
 
